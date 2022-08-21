@@ -1,0 +1,6 @@
+.devcontainer/
+.cache/
+.vscode/
+build/
+# sdkconfig
+sdkconfig.old
