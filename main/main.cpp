@@ -6,6 +6,7 @@
 #include <nvs_flash.h>
 #include <asio.hpp>
 
+#include "board_configs.h"
 #include "server.h"
 #include "wifi_server.h"
 
@@ -23,7 +24,6 @@ void InitNvs() {
   }
   ESP_ERROR_CHECK(ret);
 }
-
 void app_main(void) {
   // Initialize NVS
   InitNvs();

@@ -18,6 +18,7 @@
 
 #include <asio.hpp>
 
+#include "board_configs.h"
 #include "server.h"
 
 namespace {
@@ -49,6 +50,7 @@ void Session::DoRead() {
                               std::string str(data_, length);
                               Json json;
                               json["str"] = str;
+                              Blink();
                               ESP_LOGI("Asio", "Message received: %s", json.dump(2).c_str());
                               DoWrite(length);
                             }
