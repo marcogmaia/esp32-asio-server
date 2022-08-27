@@ -1,8 +1,9 @@
 idf_component_register(
   SRCS
-  "main.cpp"
-  "server.cpp"
-  "wifi_server.cpp"
+  # "main.cpp"
+  # "server.cpp"
+  # "wifi_server.cpp"
+  "uart.cpp"
 
   INCLUDE_DIRS "."
 

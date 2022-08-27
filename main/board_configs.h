@@ -21,5 +21,6 @@ inline void BlinkFunctionTask(void* ignore) {
 }
 
 inline void Blink() {
-  xTaskCreate(BlinkFunctionTask, "blink", configMINIMAL_STACK_SIZE, nullptr, 5, nullptr);
+  xTaskCreatePinnedToCore(
+      BlinkFunctionTask, "blink", configMINIMAL_STACK_SIZE, nullptr, 5, nullptr, APP_CPU_NUM);
 }

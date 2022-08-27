@@ -8,18 +8,17 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <cstdlib>
+#include "server.h"
+
 #include <exception>
 #include <iostream>
 #include <memory>
 #include <utility>
 
+#include <asio.hpp>
 #include <nlohmann/json.hpp>
 
-#include <asio.hpp>
-
 #include "board_configs.h"
-#include "server.h"
 
 namespace {
 
@@ -64,8 +63,9 @@ void Session::DoWrite(std::size_t length) {
                     [this, self, length](std::error_code ec, std::size_t /*length*/) {
                       if (!ec) {
                         std::string message(data_, length);
+                        std::string_view m(data_, length);
                         if (!message.empty()) {
-                          ESP_LOGI("Asio", "Message written: %s", message.c_str());
+                          ESP_LOGI("Asio", "Message written: %s", m.data());
                         }
                         DoRead();
                       }
