@@ -1,3 +1,4 @@
+AlignConsecutiveAssignments: true
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false

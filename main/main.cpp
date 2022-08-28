@@ -6,6 +6,7 @@
 #include <nvs_flash.h>
 #include <asio.hpp>
 
+#include "alarm/alarm.h"
 #include "board_configs.h"
 #include "server.h"
 #include "wifi_server.h"
@@ -14,7 +15,7 @@
 extern "C" {
 #endif
 
-constexpr auto kTag = "MAIN";
+constexpr auto kTag = "Main";
 
 void InitNvs() {
   esp_err_t ret = nvs_flash_init();
@@ -30,6 +31,8 @@ void app_main(void) {
 
   ESP_LOGI(kTag, "ESP_WIFI_MODE_STA");
   WifiInitStation();
+
+  mmrr::alarm::Init();
 
   try {
     asio::io_context io_context;
