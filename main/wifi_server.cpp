@@ -31,11 +31,11 @@ void Terminate() {}
 #include <lwip/sys.h>
 #include <nvs_flash.h>
 
+#include "board_configs.h"
+
 namespace {
 
-constexpr auto kWifiSsid = "CINGUESTS";
-constexpr auto kWifiPass = "acessocin";
-constexpr auto kMaximumRetry = 2;
+
 
 /* FreeRTOS event group to signal when we are connected*/
 EventGroupHandle_t s_wifi_event_group;

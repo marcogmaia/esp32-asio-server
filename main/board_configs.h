@@ -6,6 +6,8 @@
 
 constexpr gpio_num_t kGpioLed = GPIO_NUM_2;
 
+// constexpr int kPassword = 5;
+
 // 7 segments pins
 constexpr gpio_num_t kPinSegA = GPIO_NUM_NC;
 constexpr gpio_num_t kPinSegB = GPIO_NUM_NC;
@@ -20,6 +22,11 @@ constexpr gpio_num_t kPinButton         = GPIO_NUM_NC;
 constexpr gpio_num_t kPinLed            = GPIO_NUM_NC;
 constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_NC;
+
+// Wifi configs
+constexpr auto kWifiSsid     = "CINGUESTS";
+constexpr auto kWifiPass     = "acessocin";
+constexpr auto kMaximumRetry = 2;
 
 inline void BlinkFunctionTask(void* ignore) {
   static bool initialized = false;

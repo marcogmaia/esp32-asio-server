@@ -9,6 +9,7 @@
 #include "alarm/alarm.h"
 #include "board_configs.h"
 #include "server.h"
+#include "uart.h"
 #include "wifi_server.h"
 
 #ifdef __cplusplus
@@ -25,6 +26,7 @@ void InitNvs() {
   }
   ESP_ERROR_CHECK(ret);
 }
+
 void app_main(void) {
   // Initialize NVS
   InitNvs();
@@ -32,7 +34,8 @@ void app_main(void) {
   ESP_LOGI(kTag, "ESP_WIFI_MODE_STA");
   WifiInitStation();
 
-  mmrr::alarm::Init();
+  // mmrr::alarm::Init();
+  mmrr::uart::Init();
 
   try {
     asio::io_context io_context;

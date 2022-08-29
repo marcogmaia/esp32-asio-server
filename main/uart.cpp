@@ -1,77 +1,91 @@
+#include <algorithm>
 #include <array>
 #include <string>
 
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "esp_log.h"
+#include "fmt/format.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "gsl/span"
 #include "sdkconfig.h"
 
 #include "board_configs.h"
+#include "password/password.h"
+#include "queue.h"
 #include "uart.h"
-
-/**
- * This is an example which echos any data it receives on configured UART back to the sender,
- * with hardware flow control turned off. It does not use UART driver event queue.
- *
- * - Port: configured UART
- * - Receive (Rx) buffer: on
- * - Transmit (Tx) buffer: off
- * - Flow control: off
- * - Event queue: off
- * - Pin assignment: see defines below (See Kconfig)
- */
 
 namespace {
 
+using mmrr::pass::Password;
+
 constexpr const char *kTag = "UART TEST";
 
-constexpr size_t kBufferSize = 1024;
+constexpr size_t kBufferSize   = 256;
 constexpr uart_port_t kUartNum = UART_NUM_0;
 
-constexpr gpio_num_t kTxPin = GPIO_NUM_1;
-constexpr gpio_num_t kRxPin = GPIO_NUM_3;
+constexpr gpio_num_t kTxPin  = GPIO_NUM_1;
+constexpr gpio_num_t kRxPin  = GPIO_NUM_3;
 constexpr gpio_num_t kRtsPin = GPIO_NUM_NC;
 constexpr gpio_num_t kCtsPin = GPIO_NUM_NC;
 
 template <typename T>
 constexpr int StrLen(const T *str) {
   const T *begin = str;
-  const T *end = begin;
+  const T *end   = begin;
   while (*end != '\0') {
     ++end;
   }
   return end - begin;
 }
 
-void echo_task(void *ignore) {
+void ReadPasswordFromUart() {
+  constexpr int password_size = 6;
+  std::array<uint8_t, password_size> buffer{};
+  uart_read_bytes(kUartNum, buffer.data(), password_size, portMAX_DELAY);
+  auto pass = Password{buffer};
+  xQueueOverwrite(mmrr::queue::queue_password, &pass);
+}
+
+Password GetPassword() {
+  Password pass;
+  while (xQueueReceive(mmrr::queue::queue_password, &pass, portMAX_DELAY) == pdFALSE) {
+  }
+  return pass;
+}
+
+void UartTask(void *ignore) {
   /* Configure parameters of an UART driver,
    * communication pins and install the driver */
-
-  uart::Init();
+  mmrr::queue::Init();
+  mmrr::uart::Init();
   ESP_LOGI(kTag, "Initialized.");
 
   // Configure a temporary buffer for the incoming data
-  std::array<uint8_t, kBufferSize> buffer;
+  // std::array<uint8_t, kBufferSize> buffer;
 
+  const auto expected_pass = Password(std::string_view("654321"));
   Blink();
-  while (1) {
-    // Read data from the UART
-    int len = uart_read_bytes(kUartNum, buffer.data(), (kBufferSize - 1), pdMS_TO_TICKS(20));
-    // Write data back to the UART
-    if (len) {
-      buffer[len] = '\0';
-      ESP_LOGI(kTag, "Message received: %s", buffer.data());
-      // uart_write_bytes(kUartNum, buffer.data(), len);
-      Blink();
+  while (true) {
+    // const auto password = ReadPasswordFromUart();
+    ReadPasswordFromUart();
+    auto password = GetPassword();
+
+    if (expected_pass == password.get_pass()) {
+      ESP_LOGI(kTag, "Correct password!");
     }
+
+    ESP_LOGI(kTag,
+             "%s",
+             fmt::format("Pass received: {}. fmtlib", password.GetPassAsConstChar()).c_str());
+    Blink();
   }
 }
 
 }  // namespace
 
-namespace uart {
+namespace mmrr::uart {
 
 void Init() {
   static bool initialized = false;
@@ -94,12 +108,13 @@ void Init() {
   ESP_ERROR_CHECK(uart_driver_install(kUartNum, kBufferSize * 2, 0, 0, nullptr, intr_alloc_flags));
   ESP_ERROR_CHECK(uart_param_config(kUartNum, &uart_config));
   ESP_ERROR_CHECK(uart_set_pin(kUartNum, kTxPin, kRxPin, kRtsPin, kCtsPin));
-}
 
-void InitTask() {
   xTaskCreatePinnedToCore(
-      echo_task, "uart_echo_task", configMINIMAL_STACK_SIZE * 5, nullptr, 10, nullptr, APP_CPU_NUM);
+      UartTask, "uart_echo_task", configMINIMAL_STACK_SIZE * 5, nullptr, 10, nullptr, APP_CPU_NUM);
 }
 
-}  // namespace uart
+}  // namespace mmrr::uart
 
+// extern "C" void app_main() {
+//   mmrr::uart::InitTask();
+// }

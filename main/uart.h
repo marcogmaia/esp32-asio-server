@@ -1,8 +1,7 @@
 #pragma once
 
-namespace uart {
+namespace mmrr::uart {
 
 void Init();
-void InitTask();
 
-}  // namespace uart
+}  // namespace mmrr::uart

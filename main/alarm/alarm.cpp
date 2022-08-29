@@ -4,12 +4,15 @@
 #include <cassert>
 
 #include "driver/gpio.h"
+#include "driver/uart.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 
 #include "board_configs.h"
+#include "uart.h"
 
 namespace mmrr::alarm {
 
@@ -98,6 +101,10 @@ enum class State {
   End,
 };
 
+constexpr bool CheckPassword(int read_password) {
+  return kPassword == read_password;
+}
+
 constexpr const char* GetStateString(State state) {
   // clang-format off
   switch (state) {
@@ -156,7 +163,7 @@ void Fsm(void* ignore) {
     };
 
     case State::Detect: {
-      // bool is_movement_detected = digitalRead(pin_sensor_movement) == HIGH;
+      // bool is_movement_detected = digitalRead(pin_sensor_movement) == 1;
       bool is_movement_detected   = false;
       static bool is_light_detect = false;
       if (analogRead(kPinLdr) < 100) {
@@ -196,6 +203,7 @@ void Fsm(void* ignore) {
       // Lê o password
       if (Serial.available()) {
         Serial.println("Input");
+
         int read_password = Serial.read();
         is_valid_password = CheckPassword(read_password);
         TurnOffDigits();
@@ -231,8 +239,8 @@ void Fsm(void* ignore) {
 
     case State::End: {
       // Ativa o pega-ladrão
-      gpio_set_level(pin_buzzer, HIGH);
-      gpio_set_level(kPinLed, HIGH);
+      gpio_set_level(kPinBuzzer, 1);
+      gpio_set_level(kPinLed, 1);
       break;
     };
 
@@ -252,6 +260,8 @@ void Init() {
   initialized = true;
 
   ESP_LOGI(kTag, "Initializing the alarm.");
+
+  mmrr::uart::Init();
 
   InitializeSegments();
 

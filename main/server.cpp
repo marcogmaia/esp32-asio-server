@@ -17,6 +17,7 @@
 
 #include <asio.hpp>
 #include <nlohmann/json.hpp>
+#include "fmt/format.h"
 
 #include "board_configs.h"
 
@@ -50,7 +51,7 @@ void Session::DoRead() {
                               Json json;
                               json["str"] = str;
                               Blink();
-                              ESP_LOGI("Asio", "Message received: %s", json.dump(2).c_str());
+                              ESP_LOGI("Asio", "Message received: %s", json.dump().c_str());
                               DoWrite(length);
                             }
                           });
@@ -62,10 +63,10 @@ void Session::DoWrite(std::size_t length) {
                     asio::buffer(data_, length),
                     [this, self, length](std::error_code ec, std::size_t /*length*/) {
                       if (!ec) {
-                        std::string message(data_, length);
-                        std::string_view m(data_, length);
+                        std::string_view message(data_, length);
                         if (!message.empty()) {
-                          ESP_LOGI("Asio", "Message written: %s", m.data());
+                          ESP_LOGI(
+                              "Asio", "%s", fmt::format("Message written: {}", message).c_str());
                         }
                         DoRead();
                       }
