@@ -12,11 +12,15 @@
 #include "freertos/task.h"
 
 #include "board_configs.h"
+#include "password/password.h"
+#include "queue.h"
 #include "uart.h"
 
 namespace mmrr::alarm {
 
 namespace {
+
+using mmrr::pass::Password;
 
 constexpr auto* kTag = "Alarm";
 
@@ -102,7 +106,8 @@ enum class State {
 };
 
 constexpr bool CheckPassword(int read_password) {
-  return kPassword == read_password;
+  // return kPassword == read_password;
+  return 5 == read_password;
 }
 
 constexpr const char* GetStateString(State state) {
@@ -133,6 +138,21 @@ void TwoBeeps(int delay_ms) {
   vTaskDelay(pdMS_TO_TICKS(delay_ms));
 }
 
+void WaitPassword(void* ignore){
+
+};
+
+void CountdownTask(void* ignore) {
+  for (int i = 9; i >= 0; --i) {
+    ShowDigit(i);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+Password GetExpectedPassword() {
+  return Password{"654321"};
+}
+
 void Fsm(void* ignore) {
   static State actual_state = State::Initial;
   PrintState(actual_state);
@@ -150,7 +170,7 @@ void Fsm(void* ignore) {
     }
 
     case State::ActivateAlarm: {
-      // Pisca o led por 10 segundo.
+      // Pisca o led por 10 segundos .
       for (size_t i = 0; i < 20; ++i) {
         static bool led_state = true;
         gpio_set_level(kPinLed, static_cast<uint8_t>(led_state));
@@ -166,6 +186,7 @@ void Fsm(void* ignore) {
       // bool is_movement_detected = digitalRead(pin_sensor_movement) == 1;
       bool is_movement_detected   = false;
       static bool is_light_detect = false;
+      // TODO
       if (analogRead(kPinLdr) < 100) {
         is_light_detect = true;
       }
@@ -181,57 +202,45 @@ void Fsm(void* ignore) {
     }
 
     case State::Password: {
-      static int last_time = millis();
-      static int timer     = 0;
-      auto actual_time     = millis();
-      auto dt              = actual_time - last_time;
-      timer += dt;
-      last_time                  = actual_time;
       static bool is_last_chance = false;
-      static int counter         = 10;
 
       // Simplesmente altera o 7 segmentos.
-      if (timer > 1000) {
-        --counter;
-        timer   = 0;                          // reseta timer.
-        counter = counter < 0 ? 0 : counter;  // impede do counter de ser negativo.
-        ShowDigit(counter);
+      // Create a countdown task. From 9 to 0.
+      static TaskHandle_t task_countdown = nullptr;
+      if (!task_countdown) {
+        xTaskCreatePinnedToCore(CountdownTask,
+                                "TaskCountdown",
+                                configMINIMAL_STACK_SIZE,
+                                nullptr,
+                                5,
+                                &task_countdown,
+                                APP_CPU_NUM);
       }
 
-      bool is_valid_password = false;
-
-      // Lê o password
-      if (Serial.available()) {
-        Serial.println("Input");
-
-        int read_password = Serial.read();
-        is_valid_password = CheckPassword(read_password);
-        TurnOffDigits();
-        counter = 10;
-
-        if (is_valid_password) {
-          is_last_chance = false;
-          actual_state   = State::ActivateAlarm;
-          break;
-        } else if (!is_last_chance) {
-          is_last_chance = true;
-          break;
-        } else {
-          actual_state = State::End;
-          break;
+      Password password;
+      bool success = false;
+      // Espera por 10s ler o password.
+      if (xQueueReceive(mmrr::queue::queue_password, &password, pdMS_TO_TICKS(10000)) == pdTRUE) {
+        // TODO: se o password for correto, deleta a task do countdown
+        if (password == GetExpectedPassword()) {
+          TurnOffDigits();
+          actual_state = State::ActivateAlarm;
+          success      = true;
         }
       }
 
-      // Caso de falha
-      if (counter == 0) {
-        TurnOffDigits();
-        counter = 10;
-        if (is_last_chance) {
-          actual_state = State::End;
-          break;
-        }
+      // Cleanup.
+      if (task_countdown) {
+        vTaskDelete(task_countdown);
+        task_countdown = nullptr;
+      }
+
+      if (success) {  // Success
+        is_last_chance = false;
+      } else if (!is_last_chance) {  // Try again.
         is_last_chance = true;
-        break;
+      } else {  // Game Over.
+        actual_state = State::End;
       }
 
       break;
