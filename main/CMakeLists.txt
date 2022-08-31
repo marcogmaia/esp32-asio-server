@@ -15,4 +15,5 @@ idf_component_register(
   wifi_provisioning
   nvs_flash
   fmt
+  esp_adc_cal
 )
