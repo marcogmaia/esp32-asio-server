@@ -1,19 +1,29 @@
 
+#include <cstring>
+
 #include "driver/adc.h"
 #include "driver/gpio.h"
 #include "esp_adc_cal.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 
+#include "board_configs.h"
+#include "queue.h"
 
-#define DEFAULT_VREF 1100  // Use adc2_vref_to_gpio() to obtain a better estimate
-#define NO_OF_SAMPLES 64   // Multisampling
+namespace mmrr::adc {
 
-static esp_adc_cal_characteristics_t *adc_chars;
-static const adc_channel_t channel  = ADC_CHANNEL_6;  // GPIO34 if ADC1, GPIO14 if ADC2
-static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
-static const adc_atten_t atten      = ADC_ATTEN_DB_0;
-static const adc_unit_t unit        = ADC_UNIT_1;
+namespace {
+
+constexpr int kDefaultVref = 1100;  // Use adc2_vref_to_gpio() to obtain a better estimate
+constexpr int kNoOfSamples = 32;    // Multisampling
+
+esp_adc_cal_characteristics_t adc_chars;
+
+}  // namespace
+
+constexpr const char* kTag = "Adc";
 
 static void check_efuse(void) {
   // Check if TP is burned into eFuse
@@ -40,43 +50,63 @@ static void print_char_val_type(esp_adc_cal_value_t val_type) {
   }
 }
 
-void app_main(void) {
-  // Check if Two Point or Vref are burned into eFuse
-  check_efuse();
-
-  // Configure ADC
-  if (unit == ADC_UNIT_1) {
-    adc1_config_width(width);
-    adc1_config_channel_atten(channel, atten);
-  } else {
-    adc2_config_channel_atten((adc2_channel_t)channel, atten);
-  }
-
-  // Characterize ADC
-  adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-  esp_adc_cal_value_t val_type =
-      esp_adc_cal_characterize(unit, atten, width, DEFAULT_VREF, adc_chars);
-  // print_char_val_type(val_type);
-
-  // Continuously sample ADC1
-  while (1) {
+void TaskAdc(void* ignore) {
+  while (true) {
     uint32_t adc_reading = 0;
     // Multisampling
-    for (int i = 0; i < NO_OF_SAMPLES; i++) {
-      if (unit == ADC_UNIT_1) {
-        adc_reading += adc1_get_raw((adc1_channel_t)channel);
-      } else {
-        int raw;
-        adc2_get_raw((adc2_channel_t)channel, width, &raw);
-        adc_reading += raw;
+    for (int i = 0; i < kNoOfSamples; i++) {
+      if (kAdcUnit != ADC_UNIT_1) {
+        ESP_LOGE(kTag, "Adc must be unit 1");
       }
+      adc_reading += adc1_get_raw((adc1_channel_t)kAdcChannel);
     }
-    adc_reading /= NO_OF_SAMPLES;
+
+    adc_reading /= kNoOfSamples;
     // Convert adc_reading to voltage in mV
-    uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-    printf("Raw: %d\tVoltage: %dmV\n", adc_reading, voltage);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    // uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_reading, &adc_chars);
+    // printf("Raw: %d\tVoltage: %dmV\n", adc_reading, voltage);
+
+    // Send the value read to the queue.
+    xQueueOverwrite(mmrr::queue::queue_adc, &adc_reading);
+
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
-namespace mmrr {}
+void Init() {
+  static bool initialized = false;
+  if (initialized) {
+    return;
+  }
+  initialized = true;
+  //  ...
+  check_efuse();
+
+  if (kAdcUnit == ADC_UNIT_1) {
+    adc1_config_width(kAdcWidth);
+    adc1_config_channel_atten(static_cast<adc1_channel_t>(kAdcChannel), kAdcAttenuation);
+  } else {
+    ESP_LOGE(kTag, "Adc must be unit 1");
+  }
+
+  // Characterize ADC
+  std::memset(&adc_chars, 0, sizeof adc_chars);
+
+  esp_adc_cal_value_t val_type =
+      esp_adc_cal_characterize(kAdcUnit, kAdcAttenuation, kAdcWidth, kDefaultVref, &adc_chars);
+
+  xTaskCreatePinnedToCore(
+      TaskAdc, "TaskAdc", configMINIMAL_STACK_SIZE * 2, nullptr, 5, nullptr, PRO_CPU_NUM);
+}
+
+uint32_t Read() {
+  uint32_t value_read = 0;
+  xQueuePeek(mmrr::queue::queue_adc, &value_read, portMAX_DELAY);
+  return value_read;
+}
+
+extern "C" void AdcExampleMain(void) {
+  Init();
+}
+
+}  // namespace mmrr::adc

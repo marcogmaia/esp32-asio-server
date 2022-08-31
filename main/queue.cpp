@@ -9,6 +9,7 @@
 namespace mmrr::queue {
 
 QueueHandle_t queue_password;
+QueueHandle_t queue_adc;
 
 void Init() {
   static bool initialized = false;
@@ -17,6 +18,7 @@ void Init() {
   }
   initialized    = true;
   queue_password = xQueueCreate(1, sizeof(mmrr::pass::Password));
+  queue_adc      = xQueueCreate(1, sizeof(uint32_t));
 }
 
 }  // namespace mmrr::queue

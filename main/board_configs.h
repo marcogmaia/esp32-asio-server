@@ -1,5 +1,6 @@
 #pragma once
 
+#include "driver/adc.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -23,10 +24,24 @@ constexpr gpio_num_t kPinLed            = GPIO_NUM_NC;
 constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_NC;
 
-// Wifi configs
+// Wifi configs.
 constexpr auto kWifiSsid     = "CINGUESTS";
 constexpr auto kWifiPass     = "acessocin";
 constexpr auto kMaximumRetry = 2;
+
+// Adc configs.
+// GPIO32 ADC1_CH4
+// GPIO33 ADC1_CH5
+// GPIO34 ADC1_CH6
+// GPIO35 ADC1_CH7
+// GPIO36 ADC1_CH0
+// GPIO37 ADC1_CH1
+// GPIO38 ADC1_CH2
+// GPIO39 ADC1_CH3
+constexpr adc_unit_t kAdcUnit = ADC_UNIT_1;
+constexpr adc_channel_t kAdcChannel   = ADC_CHANNEL_6;  // GPIO34 if ADC1, GPIO14 if ADC2
+constexpr adc_bits_width_t kAdcWidth  = ADC_WIDTH_BIT_10;
+constexpr adc_atten_t kAdcAttenuation = ADC_ATTEN_DB_0;
 
 inline void BlinkFunctionTask(void* ignore) {
   static bool initialized = false;

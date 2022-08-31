@@ -7,6 +7,7 @@
 namespace mmrr::queue {
 
 extern QueueHandle_t queue_password;
+extern QueueHandle_t queue_adc;
 
 void Init();
 
