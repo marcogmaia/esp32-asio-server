@@ -40,16 +40,6 @@ static void check_efuse(void) {
   }
 }
 
-static void print_char_val_type(esp_adc_cal_value_t val_type) {
-  if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
-    printf("Characterized using Two Point Value\n");
-  } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
-    printf("Characterized using eFuse Vref\n");
-  } else {
-    printf("Characterized using Default Vref\n");
-  }
-}
-
 void TaskAdc(void* ignore) {
   while (true) {
     uint32_t adc_reading = 0;
@@ -67,9 +57,34 @@ void TaskAdc(void* ignore) {
     // printf("Raw: %d\tVoltage: %dmV\n", adc_reading, voltage);
 
     // Send the value read to the queue.
-    xQueueOverwrite(mmrr::queue::queue_adc, &adc_reading);
+    xQueueOverwrite(queue::queue_adc, &adc_reading);
 
     vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
+
+void PrintCharsValType(esp_adc_cal_value_t val_type) {
+  switch (val_type) {
+    case ESP_ADC_CAL_VAL_EFUSE_VREF: {
+      printf("Characterized using eFuse Vref\n");
+      break;
+    }
+    case ESP_ADC_CAL_VAL_EFUSE_TP: {
+      printf("Characterized using Two Point Value\n");
+      break;
+    }
+    case ESP_ADC_CAL_VAL_DEFAULT_VREF: {
+      printf("Characterized using Default Vref\n");
+      break;
+    }
+    case ESP_ADC_CAL_VAL_EFUSE_TP_FIT: {
+      printf("Characterized using two points fit\n");
+      break;
+    }
+    default: {
+      ESP_LOGE(kTag, "Unknown characterization type.");
+      break;
+    }
   }
 }
 
@@ -79,7 +94,11 @@ void Init() {
     return;
   }
   initialized = true;
-  //  ...
+  queue::Init();
+  // xQueuePeek(mmrr::queue::queue_adc, &value_read, portMAX_DELAY);
+  constexpr uint32_t kAdcInitialValue = 0;
+  xQueueOverwrite(queue::queue_adc, &kAdcInitialValue);
+
   check_efuse();
 
   if (kAdcUnit == ADC_UNIT_1) {
@@ -94,6 +113,7 @@ void Init() {
 
   esp_adc_cal_value_t val_type =
       esp_adc_cal_characterize(kAdcUnit, kAdcAttenuation, kAdcWidth, kDefaultVref, &adc_chars);
+  PrintCharsValType(val_type);
 
   xTaskCreatePinnedToCore(
       TaskAdc, "TaskAdc", configMINIMAL_STACK_SIZE * 2, nullptr, 5, nullptr, PRO_CPU_NUM);

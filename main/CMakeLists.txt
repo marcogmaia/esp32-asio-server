@@ -1,10 +1,12 @@
 idf_component_register(
   SRCS
+  "./adc.cpp"
+  "./client.cpp"
   "./main.cpp"
-  "./server.cpp"
-  "./wifi_server.cpp"
   "./queue.cpp"
+  "./server.cpp"
   "./uart.cpp"
+  "./wifi_server.cpp"
   # "alarm/alarm.cpp"
 
   INCLUDE_DIRS "."

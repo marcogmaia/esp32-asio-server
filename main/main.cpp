@@ -3,11 +3,15 @@
 
 #include <driver/gpio.h>
 #include <esp_log.h>
+#include <fmt/format.h>
 #include <nvs_flash.h>
 #include <asio.hpp>
 
+#include "adc.h"
 #include "alarm/alarm.h"
 #include "board_configs.h"
+#include "client.h"
+#include "queue.h"
 #include "server.h"
 #include "uart.h"
 #include "wifi_server.h"
@@ -35,12 +39,29 @@ void app_main(void) {
   WifiInitStation();
 
   // mmrr::alarm::Init();
+  mmrr::queue::Init();
   mmrr::uart::Init();
+  mmrr::adc::Init();
+
+  // try {
+  //   asio::io_context io_context;
+  //   uint16_t port = 54321;
+  //   Server server(io_context, port);
+  //   io_context.run();
+  // } catch (std::exception& e) {
+  //   ESP_LOGE(kTag, "Exception: %s", e.what());
+  // }
+
+  ESP_LOGI(kTag, "Ready to read from uart.");
+  for (int i = 0; i < 10; ++i) {
+    auto test = mmrr::uart::Read();
+    ESP_LOGI(kTag, "%s", fmt::format("uart read: {}", test.c_str()).c_str());
+  }
 
   try {
     asio::io_context io_context;
     uint16_t port = 54321;
-    Server server(io_context, port);
+    mmrr::client::Server server(&io_context,port);
     io_context.run();
   } catch (std::exception& e) {
     ESP_LOGE(kTag, "Exception: %s", e.what());

@@ -5,6 +5,8 @@
 #include <esp_log.h>
 #include <asio.hpp>
 
+namespace mmrr::client {
+
 class Session : public std::enable_shared_from_this<Session> {
   using tcp = asio::ip::tcp;
 
@@ -40,3 +42,5 @@ class Server {
 
   tcp::acceptor acceptor_;
 };
+
+}

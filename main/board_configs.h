@@ -25,8 +25,10 @@ constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_NC;
 
 // Wifi configs.
-constexpr auto kWifiSsid     = "CINGUESTS";
-constexpr auto kWifiPass     = "acessocin";
+// constexpr auto kWifiSsid     = "CINGUESTS";
+// constexpr auto kWifiPass     = "acessocin";
+constexpr auto kWifiSsid     = "maia";
+constexpr auto kWifiPass     = "marco3445";
 constexpr auto kMaximumRetry = 2;
 
 // Adc configs.
@@ -38,7 +40,7 @@ constexpr auto kMaximumRetry = 2;
 // GPIO37 ADC1_CH1
 // GPIO38 ADC1_CH2
 // GPIO39 ADC1_CH3
-constexpr adc_unit_t kAdcUnit = ADC_UNIT_1;
+constexpr adc_unit_t kAdcUnit         = ADC_UNIT_1;
 constexpr adc_channel_t kAdcChannel   = ADC_CHANNEL_6;  // GPIO34 if ADC1, GPIO14 if ADC2
 constexpr adc_bits_width_t kAdcWidth  = ADC_WIDTH_BIT_10;
 constexpr adc_atten_t kAdcAttenuation = ADC_ATTEN_DB_0;

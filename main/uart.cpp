@@ -41,9 +41,9 @@ constexpr int StrLen(const T *str) {
 }
 
 void ReadPasswordFromUart() {
-  constexpr int password_size = 6;
-  std::array<uint8_t, password_size> buffer{};
-  uart_read_bytes(kUartNum, buffer.data(), password_size, portMAX_DELAY);
+  constexpr int kPasswordSize = 6;
+  std::array<uint8_t, kPasswordSize> buffer{};
+  uart_read_bytes(kUartNum, buffer.data(), kPasswordSize, portMAX_DELAY);
   auto pass = Password{buffer};
   xQueueOverwrite(mmrr::queue::queue_password, &pass);
 }
@@ -109,8 +109,30 @@ void Init() {
   ESP_ERROR_CHECK(uart_param_config(kUartNum, &uart_config));
   ESP_ERROR_CHECK(uart_set_pin(kUartNum, kTxPin, kRxPin, kRtsPin, kCtsPin));
 
-  xTaskCreatePinnedToCore(
-      UartTask, "uart_echo_task", configMINIMAL_STACK_SIZE * 5, nullptr, 10, nullptr, APP_CPU_NUM);
+  // xTaskCreatePinnedToCore(
+  //     UartTask, "uart_echo_task", configMINIMAL_STACK_SIZE * 5, nullptr, 10, nullptr,
+  //     APP_CPU_NUM);
+}
+
+std::string Read() {
+  constexpr char kLf  = '\n';
+  constexpr char kCr  = '\r';
+  auto is_end_of_line = [](char ch) { return ch == kLf || ch == kCr; };
+
+  constexpr int kMaxBufferSize  = 1024;
+  char byte_read                = '\0';
+  std::array<char, 1024> buffer = {0};
+  int index                     = 0;
+  for (uart_read_bytes(kUartNum, &byte_read, 1, portMAX_DELAY);
+       !is_end_of_line(byte_read) && index < (kMaxBufferSize - 1);
+       uart_read_bytes(kUartNum, &byte_read, 1, portMAX_DELAY), ++index) {
+    uart_write_bytes(kUartNum, &byte_read, 1);
+    buffer[index] = byte_read;
+  }
+  uart_write_bytes(kUartNum, &kCr, 1);
+  uart_write_bytes(kUartNum, &kLf, 1);
+  buffer[index] = '\0';
+  return std::string(buffer.data());
 }
 
 }  // namespace mmrr::uart
