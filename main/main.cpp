@@ -38,36 +38,11 @@ void app_main(void) {
   ESP_LOGI(kTag, "ESP_WIFI_MODE_STA");
   WifiInitStation();
 
-  // mmrr::alarm::Init();
   mmrr::queue::Init();
   mmrr::uart::Init();
   mmrr::adc::Init();
   mmrr::client::Init();
-
-  // try 5
-  //   asio::io_context io_context;
-  //   uint16_t port = 54321;
-  //   Server server(io_context, port);
-  //   io_context.run();
-  // } catch (std::exception& e) {
-  //   ESP_LOGE(kTag, "Exception: %s", e.what());
-  // }
-
-  // ESP_LOGI(kTag, "Ready to read from uart.");
-  // for (int i = 0; i < 10; ++i) {
-  //   auto test = mmrr::uart::Read();
-  //   ESP_LOGI(kTag, "%s", fmt::format("uart read: {}", test.c_str()).c_str());
-  // }
-
-  // try {
-  //   asio::io_context io_context;
-  //   asio::ip::tcp::resolver resolver(io_context);
-  //   uint16_t port = 54321;
-  //   mmrr::client::Server server(io_context, port);
-  //   io_context.run();
-  // } catch (std::exception& e) {
-  //   ESP_LOGE(kTag, "Exception: %s", e.what());
-  // }
+  // mmrr::alarm::Init();
 }
 
 #ifdef __cplusplus

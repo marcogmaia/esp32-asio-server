@@ -7,7 +7,7 @@ idf_component_register(
   "./server.cpp"
   "./uart.cpp"
   "./wifi_server.cpp"
-  # "alarm/alarm.cpp"
+  "alarm/alarm.cpp"
 
   INCLUDE_DIRS "."
 

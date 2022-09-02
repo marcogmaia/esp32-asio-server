@@ -54,15 +54,12 @@ class Message {
   }
 
   void EncodeHeader() {
-    // char header[kHeaderLen + 1] = "";
     std::array<std::byte, kHeaderLen + 1> header{std::byte{0}};
     std::sprintf(reinterpret_cast<char*>(header.data()), "%4d", static_cast<int>(body_length_));
-    // std::memcpy(data_, header, kHeaderLen);
     std::copy_n(header.begin(), kHeaderLen, data_.begin());
   }
 
  private:
-  // char data_[kHeaderLen + kMaxBodyLen];
   std::array<std::byte, kHeaderLen + kMaxBodyLen> data_;
   std::size_t body_length_;
 };
@@ -85,7 +82,7 @@ class Client {
       bool is_write_in_progress = !write_msgs_.empty();
       write_msgs_.push_back(msg);
       if (!is_write_in_progress) {
-        do_write();
+        DoWrite();
       }
     });
   }
@@ -129,14 +126,14 @@ class Client {
                      });
   }
 
-  void do_write() {
+  void DoWrite() {
     asio::async_write(socket_,
                       asio::buffer(write_msgs_.front().data(), write_msgs_.front().length()),
                       [this](std::error_code ec, std::size_t /*length*/) {
                         if (!ec) {
                           write_msgs_.pop_front();
                           if (!write_msgs_.empty()) {
-                            do_write();
+                            DoWrite();
                           }
                         } else {
                           socket_.close();

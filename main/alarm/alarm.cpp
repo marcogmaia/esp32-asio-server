@@ -143,19 +143,36 @@ void WaitPassword(void* ignore){
 };
 
 void CountdownTask(void* ignore) {
+  ESP_LOGI(kTag, "Countdown started.");
   for (int i = 9; i >= 0; --i) {
     ShowDigit(i);
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
-Password GetExpectedPassword() {
-  return Password{"654321"};
+// Password GetExpectedPassword() {
+//   return Password{"654321"};
+// }
+
+TaskHandle_t CreateCountdownTask() {
+  TaskHandle_t task_handler = nullptr;
+  xTaskCreatePinnedToCore(CountdownTask,
+                          "CountdownTask",
+                          configMINIMAL_STACK_SIZE * 2,
+                          nullptr,
+                          5,
+                          &task_handler,
+                          APP_CPU_NUM);
+  return task_handler;
 }
 
-void Fsm(void* ignore) {
+void Fsm() {
   static State actual_state = State::Initial;
   PrintState(actual_state);
+
+  // CreateCountdownTask();
+  // vTaskDelay(portMAX_DELAY);
+
   vTaskDelay(pdMS_TO_TICKS(1000));
 
   switch (actual_state) {
@@ -186,10 +203,10 @@ void Fsm(void* ignore) {
       // bool is_movement_detected = digitalRead(pin_sensor_movement) == 1;
       bool is_movement_detected   = false;
       static bool is_light_detect = false;
-      // TODO
-      if (analogRead(kPinLdr) < 100) {
-        is_light_detect = true;
-      }
+      // TODO analog_read
+      // if (analogRead(kPinLdr) < 100) {
+      //   is_light_detect = true;
+      // }
       bool buzzer_should_activate = is_movement_detected || is_light_detect;
       ESP_LOGI(kTag, "Movimento: %d, Luz: %d.", is_movement_detected, is_light_detect);
       if (buzzer_should_activate) {
@@ -208,13 +225,7 @@ void Fsm(void* ignore) {
       // Create a countdown task. From 9 to 0.
       static TaskHandle_t task_countdown = nullptr;
       if (!task_countdown) {
-        xTaskCreatePinnedToCore(CountdownTask,
-                                "TaskCountdown",
-                                configMINIMAL_STACK_SIZE,
-                                nullptr,
-                                5,
-                                &task_countdown,
-                                APP_CPU_NUM);
+        task_countdown = CreateCountdownTask();
       }
 
       Password password;
@@ -222,11 +233,11 @@ void Fsm(void* ignore) {
       // Espera por 10s ler o password.
       if (xQueueReceive(mmrr::queue::queue_password, &password, pdMS_TO_TICKS(10000)) == pdTRUE) {
         // TODO: se o password for correto, deleta a task do countdown
-        if (password == GetExpectedPassword()) {
-          TurnOffDigits();
-          actual_state = State::ActivateAlarm;
-          success      = true;
-        }
+        // if (password == GetExpectedPassword()) {
+        //   TurnOffDigits();
+        //   actual_state = State::ActivateAlarm;
+        //   success      = true;
+        // }
       }
 
       // Cleanup.
@@ -258,6 +269,13 @@ void Fsm(void* ignore) {
   }
 }
 
+void TaskFsm(void* ignore) {
+  ESP_LOGI(kTag, "FSM started.");
+  while (true) {
+    Fsm();
+  }
+}
+
 }  // namespace
 
 void Init() {
@@ -274,6 +292,8 @@ void Init() {
 
   InitializeSegments();
 
+  xTaskCreatePinnedToCore(
+      TaskFsm, "TaskFsm", configMINIMAL_STACK_SIZE * 5, nullptr, 5, nullptr, APP_CPU_NUM);
   ESP_LOGI(kTag, "Alarm initialized.");
 }
 

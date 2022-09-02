@@ -10,13 +10,13 @@ constexpr gpio_num_t kGpioLed = GPIO_NUM_2;
 // constexpr int kPassword = 5;
 
 // 7 segments pins
-constexpr gpio_num_t kPinSegA = GPIO_NUM_NC;
-constexpr gpio_num_t kPinSegB = GPIO_NUM_NC;
-constexpr gpio_num_t kPinSegC = GPIO_NUM_NC;
-constexpr gpio_num_t kPinSegD = GPIO_NUM_NC;
-constexpr gpio_num_t kPinSegE = GPIO_NUM_NC;
-constexpr gpio_num_t kPinSegF = GPIO_NUM_NC;
-constexpr gpio_num_t kPinSegG = GPIO_NUM_NC;
+constexpr gpio_num_t kPinSegA = GPIO_NUM_5;
+constexpr gpio_num_t kPinSegB = GPIO_NUM_18;
+constexpr gpio_num_t kPinSegC = GPIO_NUM_19;
+constexpr gpio_num_t kPinSegD = GPIO_NUM_21;
+constexpr gpio_num_t kPinSegE = GPIO_NUM_22;
+constexpr gpio_num_t kPinSegF = GPIO_NUM_14;
+constexpr gpio_num_t kPinSegG = GPIO_NUM_12;
 
 constexpr gpio_num_t kPinLdr            = GPIO_NUM_NC;
 constexpr gpio_num_t kPinButton         = GPIO_NUM_NC;
@@ -25,10 +25,10 @@ constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_NC;
 
 // Wifi configs.
-// constexpr auto kWifiSsid     = "CINGUESTS";
-// constexpr auto kWifiPass     = "acessocin";
-constexpr auto kWifiSsid     = "maia";
-constexpr auto kWifiPass     = "marco3445";
+constexpr auto kWifiSsid     = "CINGUESTS";
+constexpr auto kWifiPass     = "acessocin";
+// constexpr auto kWifiSsid     = "maia";
+// constexpr auto kWifiPass     = "marco3445";
 constexpr auto kMaximumRetry = 2;
 
 // Client configs.
