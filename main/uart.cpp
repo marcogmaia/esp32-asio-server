@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <string>
 
 #include "driver/gpio.h"
@@ -40,49 +41,6 @@ constexpr int StrLen(const T *str) {
   return end - begin;
 }
 
-void ReadPasswordFromUart() {
-  constexpr int kPasswordSize = 6;
-  std::array<uint8_t, kPasswordSize> buffer{};
-  uart_read_bytes(kUartNum, buffer.data(), kPasswordSize, portMAX_DELAY);
-  auto pass = Password{buffer};
-  xQueueOverwrite(mmrr::queue::queue_password, &pass);
-}
-
-Password GetPassword() {
-  Password pass;
-  while (xQueueReceive(mmrr::queue::queue_password, &pass, portMAX_DELAY) == pdFALSE) {
-  }
-  return pass;
-}
-
-void UartTask(void *ignore) {
-  /* Configure parameters of an UART driver,
-   * communication pins and install the driver */
-  mmrr::queue::Init();
-  mmrr::uart::Init();
-  ESP_LOGI(kTag, "Initialized.");
-
-  // Configure a temporary buffer for the incoming data
-  // std::array<uint8_t, kBufferSize> buffer;
-
-  const auto expected_pass = Password(std::string_view("654321"));
-  Blink();
-  while (true) {
-    // const auto password = ReadPasswordFromUart();
-    ReadPasswordFromUart();
-    auto password = GetPassword();
-
-    if (expected_pass == password.get_pass()) {
-      ESP_LOGI(kTag, "Correct password!");
-    }
-
-    ESP_LOGI(kTag,
-             "%s",
-             fmt::format("Pass received: {}. fmtlib", password.GetPassAsConstChar()).c_str());
-    Blink();
-  }
-}
-
 }  // namespace
 
 namespace mmrr::uart {
@@ -108,35 +66,46 @@ void Init() {
   ESP_ERROR_CHECK(uart_driver_install(kUartNum, kBufferSize * 2, 0, 0, nullptr, intr_alloc_flags));
   ESP_ERROR_CHECK(uart_param_config(kUartNum, &uart_config));
   ESP_ERROR_CHECK(uart_set_pin(kUartNum, kTxPin, kRxPin, kRtsPin, kCtsPin));
-
-  // xTaskCreatePinnedToCore(
-  //     UartTask, "uart_echo_task", configMINIMAL_STACK_SIZE * 5, nullptr, 10, nullptr,
-  //     APP_CPU_NUM);
 }
 
-std::string Read() {
+namespace {
+
+std::optional<char> UartReadByte(TickType_t ticks_to_wait) {
+  char byte_read = 0;
+  auto read_len  = uart_read_bytes(kUartNum, &byte_read, 1, ticks_to_wait);
+  if (read_len < 1) {
+    return std::nullopt;
+  }
+  uart_write_bytes(kUartNum, &byte_read, 1);
+  return std::make_optional(byte_read);
+}
+
+void UartWriteChar(char ch) {
+  uart_write_bytes(kUartNum, &ch, 1);
+}
+
+}  // namespace
+
+std::string Read(TickType_t ticks_to_wait) {
   constexpr char kLf  = '\n';
   constexpr char kCr  = '\r';
   auto is_end_of_line = [](char ch) { return ch == kLf || ch == kCr; };
 
-  constexpr int kMaxBufferSize  = 1024;
-  char byte_read                = '\0';
-  std::array<char, 1024> buffer = {0};
-  int index                     = 0;
-  for (uart_read_bytes(kUartNum, &byte_read, 1, portMAX_DELAY);
-       !is_end_of_line(byte_read) && index < (kMaxBufferSize - 1);
-       uart_read_bytes(kUartNum, &byte_read, 1, portMAX_DELAY), ++index) {
-    uart_write_bytes(kUartNum, &byte_read, 1);
-    buffer[index] = byte_read;
+  constexpr int kMaxBufferSize            = 1024;
+  std::array<char, kMaxBufferSize> buffer = {0};
+  int index                               = 0;
+
+  for (auto byte_read = UartReadByte(ticks_to_wait);
+       !is_end_of_line(*byte_read) && index < (kMaxBufferSize - 1);
+       byte_read = UartReadByte(ticks_to_wait), ++index) {
+    buffer[index] = *byte_read;
   }
-  uart_write_bytes(kUartNum, &kCr, 1);
-  uart_write_bytes(kUartNum, &kLf, 1);
+
+  UartWriteChar(kCr);
+  UartWriteChar(kLf);
   buffer[index] = '\0';
+
   return std::string(buffer.data());
 }
 
 }  // namespace mmrr::uart
-
-// extern "C" void app_main() {
-//   mmrr::uart::InitTask();
-// }

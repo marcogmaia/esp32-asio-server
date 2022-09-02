@@ -31,6 +31,9 @@ constexpr auto kWifiSsid     = "maia";
 constexpr auto kWifiPass     = "marco3445";
 constexpr auto kMaximumRetry = 2;
 
+// Client configs.
+constexpr const char* kPort = "54321";
+
 // Adc configs.
 // GPIO32 ADC1_CH4
 // GPIO33 ADC1_CH5
