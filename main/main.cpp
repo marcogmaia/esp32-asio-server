@@ -42,7 +42,7 @@ void app_main(void) {
   mmrr::uart::Init();
   mmrr::adc::Init();
   mmrr::client::Init();
-  // mmrr::alarm::Init();
+  mmrr::alarm::Init();
 }
 
 #ifdef __cplusplus

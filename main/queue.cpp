@@ -8,6 +8,8 @@
 
 namespace mmrr::queue {
 
+SemaphoreHandle_t semaphore_password;
+
 QueueHandle_t queue_password;
 QueueHandle_t queue_adc;
 
@@ -16,8 +18,10 @@ void Init() {
   if (initialized) {
     return;
   }
-  initialized    = true;
-  queue_password = xQueueCreate(1, sizeof(mmrr::pass::Password));
+  initialized        = true;
+  semaphore_password = xSemaphoreCreateBinary();
+
+  queue_password = xQueueCreate(1, sizeof(bool));
   queue_adc      = xQueueCreate(1, sizeof(uint32_t));
 }
 

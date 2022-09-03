@@ -19,8 +19,6 @@
 
 namespace {
 
-using mmrr::pass::Password;
-
 constexpr const char *kTag = "UART TEST";
 
 constexpr size_t kBufferSize   = 256;

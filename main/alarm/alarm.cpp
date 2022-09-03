@@ -20,8 +20,6 @@ namespace mmrr::alarm {
 
 namespace {
 
-using mmrr::pass::Password;
-
 constexpr auto* kTag = "Alarm";
 
 template <typename GpioArray>
@@ -138,21 +136,14 @@ void TwoBeeps(int delay_ms) {
   vTaskDelay(pdMS_TO_TICKS(delay_ms));
 }
 
-void WaitPassword(void* ignore){
-
-};
-
 void CountdownTask(void* ignore) {
   ESP_LOGI(kTag, "Countdown started.");
   for (int i = 9; i >= 0; --i) {
     ShowDigit(i);
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
+  vTaskDelay(portMAX_DELAY);
 }
-
-// Password GetExpectedPassword() {
-//   return Password{"654321"};
-// }
 
 TaskHandle_t CreateCountdownTask() {
   TaskHandle_t task_handler = nullptr;
@@ -166,14 +157,24 @@ TaskHandle_t CreateCountdownTask() {
   return task_handler;
 }
 
+bool QueryPassword() {
+  bool is_correct_password = false;
+  // Espera por 10s ler o password.
+  // Create a countdown task. From 9 to 0.
+  TaskHandle_t task_countdown = CreateCountdownTask();
+  xSemaphoreGive(mmrr::queue::semaphore_password);
+  xQueueReceive(mmrr::queue::queue_password, &is_correct_password, pdMS_TO_TICKS(10000));
+
+  TurnOffDigits();
+  vTaskDelete(task_countdown);
+
+  return is_correct_password;
+}
+
 void Fsm() {
   static State actual_state = State::Initial;
   PrintState(actual_state);
 
-  // CreateCountdownTask();
-  // vTaskDelay(portMAX_DELAY);
-
-  vTaskDelay(pdMS_TO_TICKS(1000));
 
   switch (actual_state) {
     case State::Initial: {
@@ -221,33 +222,11 @@ void Fsm() {
     case State::Password: {
       static bool is_last_chance = false;
 
-      // Simplesmente altera o 7 segmentos.
-      // Create a countdown task. From 9 to 0.
-      static TaskHandle_t task_countdown = nullptr;
-      if (!task_countdown) {
-        task_countdown = CreateCountdownTask();
-      }
+      bool is_correct_password = QueryPassword();
 
-      Password password;
-      bool success = false;
-      // Espera por 10s ler o password.
-      if (xQueueReceive(mmrr::queue::queue_password, &password, pdMS_TO_TICKS(10000)) == pdTRUE) {
-        // TODO: se o password for correto, deleta a task do countdown
-        // if (password == GetExpectedPassword()) {
-        //   TurnOffDigits();
-        //   actual_state = State::ActivateAlarm;
-        //   success      = true;
-        // }
-      }
-
-      // Cleanup.
-      if (task_countdown) {
-        vTaskDelete(task_countdown);
-        task_countdown = nullptr;
-      }
-
-      if (success) {  // Success
+      if (is_correct_password) {  // Success
         is_last_chance = false;
+        actual_state   = State::ActivateAlarm;
       } else if (!is_last_chance) {  // Try again.
         is_last_chance = true;
       } else {  // Game Over.

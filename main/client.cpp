@@ -8,60 +8,64 @@
 
 #include <esp_log.h>
 #include <fmt/format.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <asio.hpp>
 
 #include "board_configs.h"
+#include "queue.h"
 #include "uart.h"
 
 namespace mmrr::client {
 
 namespace {
 
+using namespace mmrr::queue;
+
+void SendToQueuePassword(bool is_password_correct) {
+  xQueueOverwrite(queue_password, &is_password_correct);
+}
+
 class Message {
  public:
   static constexpr int kMaxBodyLen = 512;
   static constexpr int kHeaderLen  = 4;
 
-  Message() : body_length_(0) {}
+  Message() = default;
 
-  const std::byte* data() const { return data_.data(); }
-
-  std::byte* data() { return data_.data(); }
-
-  std::size_t length() const { return kHeaderLen + body_length_; }
-
-  const std::byte* body() const { return data_.data() + kHeaderLen; }
-
-  std::byte* body() { return data_.data() + kHeaderLen; }
-
-  std::size_t body_length() const { return body_length_; }
-
-  void body_length(std::size_t new_length) {
-    body_length_ = new_length;
-    if (body_length_ > kMaxBodyLen)
-      body_length_ = kMaxBodyLen;
-  }
-
-  bool DecodeHeader() {
-    std::array<std::byte, kHeaderLen + 1> header{std::byte{0}};
-    std::copy_n(data_.cbegin(), kHeaderLen, header.begin());
-    body_length_ = std::atoi(reinterpret_cast<char*>(header.data()));
-    if (body_length_ > kMaxBodyLen) {
-      body_length_ = 0;
-      return false;
+  Message(std::string&& str) {
+    char* data_begin = data_.data();
+    if (str.size() > kMaxBodyLen) {
+      std::copy_n(str.cbegin(), kMaxBodyLen, data_begin);
+      size_ = kMaxBodyLen;
+    } else {
+      std::copy(str.cbegin(), str.cend(), data_begin);
+      size_ = str.size();
     }
-    return true;
   }
 
-  void EncodeHeader() {
-    std::array<std::byte, kHeaderLen + 1> header{std::byte{0}};
-    std::sprintf(reinterpret_cast<char*>(header.data()), "%4d", static_cast<int>(body_length_));
-    std::copy_n(header.begin(), kHeaderLen, data_.begin());
+  char* data() { return data_.data(); }
+  const char* data() const { return data_.data(); }
+
+  std::size_t size() const { return size_; }
+
+  Message& operator=(std::string& str) {
+    char* data_begin = data_.data();
+    if (str.size() > kMaxBodyLen) {
+      std::copy_n(str.cbegin(), kMaxBodyLen, data_begin);
+      size_ = kMaxBodyLen;
+    } else {
+      std::copy(str.cbegin(), str.cend(), data_begin);
+      size_ = str.size();
+    }
+    return *this;
   }
+
+  Message& operator=(std::string&& str) { return operator=(str); }
 
  private:
-  std::array<std::byte, kHeaderLen + kMaxBodyLen> data_;
-  std::size_t body_length_;
+  std::array<char, kMaxBodyLen> data_;
+  std::size_t size_{0};
 };
 
 constexpr const char* kTag = "Client";
@@ -95,31 +99,27 @@ class Client {
   void DoConnect(const tcp::resolver::results_type& endpoints) {
     asio::async_connect(socket_, endpoints, [this](std::error_code ec, tcp::endpoint) {
       if (!ec) {
-        DoReadHeader();
+        ESP_LOGI(kTag, "Asio connected.");
+        DoRead();
       }
     });
   }
 
-  void DoReadHeader() {
+  void DoRead() {
     asio::async_read(socket_,
-                     asio::buffer(read_msg_.data(), Message::kHeaderLen),
-                     [this](std::error_code ec, std::size_t /*length*/) {
-                       if (!ec && read_msg_.DecodeHeader()) {
-                         DoReadBody();
-                       } else {
-                         socket_.close();
-                       }
-                     });
-  }
-
-  void DoReadBody() {
-    asio::async_read(socket_,
-                     asio::buffer(read_msg_.body(), read_msg_.body_length()),
-                     [this](std::error_code ec, std::size_t /*length*/) {
+                     asio::buffer(message_.data(), Message::kMaxBodyLen),
+                     asio::transfer_at_least(4),
+                     [this](std::error_code ec, std::size_t rx_len) {
                        if (!ec) {
-                         //  std::cout.write(read_msg_.body(), read_msg_.body_length());
-                         //  std::cout << "\n";
-                         DoReadHeader();
+                         Blink();
+                         std::string_view message_received(message_.data(), rx_len);
+
+                         bool is_password_correct = message_received[0] != 'E';  // "ERROR_PASSWORD"
+                         SendToQueuePassword(is_password_correct);
+
+                         ESP_LOGI(
+                             kTag, "%s", fmt::format("Received: {}.", message_received).c_str());
+                         DoRead();
                        } else {
                          socket_.close();
                        }
@@ -128,13 +128,10 @@ class Client {
 
   void DoWrite() {
     asio::async_write(socket_,
-                      asio::buffer(write_msgs_.front().data(), write_msgs_.front().length()),
+                      asio::buffer(write_msgs_.front().data(), write_msgs_.front().size()),
                       [this](std::error_code ec, std::size_t /*length*/) {
                         if (!ec) {
                           write_msgs_.pop_front();
-                          if (!write_msgs_.empty()) {
-                            DoWrite();
-                          }
                         } else {
                           socket_.close();
                         }
@@ -144,11 +141,10 @@ class Client {
  private:
   asio::io_context& io_context_;
   tcp::socket socket_;
-  Message read_msg_;
+  Message message_;
   ChatMessageQueue write_msgs_;
 };
 
-// Se
 void TaskIoContextClient(void* pv_io_context) {
   asio::io_context& io_context = *static_cast<asio::io_context*>(pv_io_context);
   io_context.run();
@@ -171,12 +167,10 @@ void TaskClient(void* ignore) {
                 5,
                 nullptr);
 
-    while (true) {
-      Message msg;
-      auto read_msg = uart::Read();
-      msg.body_length(read_msg.size());
-      std::copy(read_msg.begin(), read_msg.end(), reinterpret_cast<char*>(msg.body()));
-      client.Write(msg);
+    // espera chegar a requisição de enviar o password.
+    while (xSemaphoreTake(semaphore_password, portMAX_DELAY) == pdTRUE) {
+      Message message{uart::Read()};  // Blocking read.
+      client.Write(message);
     }
   } catch (std::exception& e) {
     ESP_LOGE(kTag, "%s", fmt::format("Exception: {}", e.what()).c_str());
