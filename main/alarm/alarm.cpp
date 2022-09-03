@@ -156,9 +156,9 @@ void TwoBeeps(int delay_ms) {
 }
 
 void CountdownTask(void* ignore) {
+  auto last_wake_time = xTaskGetTickCount();
   ESP_LOGI(kTag, "Countdown started.");
   for (int i = 9; i >= 0; --i) {
-    auto last_wake_time = xTaskGetTickCount();
     ShowDigit(i);
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1000));
   }
@@ -246,7 +246,7 @@ void Fsm() {
         ESP_LOGI(kTag, "Movement detected.");
         // Alguém entrou na casa, o buzzer vai explodir.
         TwoBeeps(250);
-        actual_state    = State::Password;
+        actual_state = State::Password;
       }
       break;
     }
