@@ -18,11 +18,11 @@ constexpr gpio_num_t kPinSegE = GPIO_NUM_22;
 constexpr gpio_num_t kPinSegF = GPIO_NUM_14;
 constexpr gpio_num_t kPinSegG = GPIO_NUM_12;
 
-constexpr gpio_num_t kPinLdr            = GPIO_NUM_NC;
-constexpr gpio_num_t kPinButton         = GPIO_NUM_NC;
-constexpr gpio_num_t kPinLed            = GPIO_NUM_NC;
+constexpr gpio_num_t kPinButton         = GPIO_NUM_27;
+constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_23;
+// constexpr gpio_num_t kPinLdr            = GPIO_NUM_NC; // GPIO_34 - ADC
+constexpr gpio_num_t kPinLed            = GPIO_NUM_13;
 constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
-constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_NC;
 
 // Wifi configs.
 // constexpr auto kWifiSsid     = "CINGUESTS";
@@ -65,4 +65,10 @@ inline void BlinkFunctionTask(void* ignore) {
 inline void Blink() {
   xTaskCreatePinnedToCore(
       BlinkFunctionTask, "blink", configMINIMAL_STACK_SIZE, nullptr, 5, nullptr, APP_CPU_NUM);
+}
+
+namespace mmrr {
+
+void Init();
+
 }

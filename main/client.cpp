@@ -20,7 +20,13 @@ namespace mmrr::client {
 
 namespace {
 
+class Message;
+
+using asio::ip::tcp;
+using ChatMessageQueue = std::deque<Message>;
 using namespace mmrr::queue;
+
+constexpr const char* kTag = "Client";
 
 void SendToQueuePassword(bool is_password_correct) {
   xQueueOverwrite(queue_password, &is_password_correct);
@@ -68,12 +74,6 @@ class Message {
   std::size_t size_{0};
 };
 
-constexpr const char* kTag = "Client";
-
-using asio::ip::tcp;
-
-using ChatMessageQueue = std::deque<Message>;
-
 class Client {
  public:
   Client(asio::io_context* io_context, const tcp::resolver::results_type& endpoints)
@@ -113,12 +113,15 @@ class Client {
                        if (!ec) {
                          Blink();
                          std::string_view message_received(message_.data(), rx_len);
+                         ESP_LOGI(
+                             kTag, "%s", fmt::format("Received: {}.", message_received).c_str());
 
                          bool is_password_correct = message_received[0] != 'E';  // "ERROR_PASSWORD"
                          SendToQueuePassword(is_password_correct);
+                         if (!is_password_correct) {
+                           ESP_LOGW(kTag, "Incorrect password, try again.");
+                         }
 
-                         ESP_LOGI(
-                             kTag, "%s", fmt::format("Received: {}.", message_received).c_str());
                          DoRead();
                        } else {
                          socket_.close();
@@ -156,7 +159,8 @@ void TaskClient(void* ignore) {
 
     tcp::resolver resolver(io_context);
 
-    auto ip_read   = mmrr::uart::Read();
+    // auto ip_read   = mmrr::uart::Read();
+    std::string ip_read = "192.168.1.7";
     auto endpoints = resolver.resolve(ip_read.c_str(), kPort);
     Client client(&io_context, endpoints);
 

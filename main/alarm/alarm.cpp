@@ -11,6 +11,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+#include "adc.h"
 #include "board_configs.h"
 #include "password/password.h"
 #include "queue.h"
@@ -40,6 +41,21 @@ void ConfigGpio(uint64_t gpio_bitmask, gpio_mode_t mode) {
                              .pull_down_en = gpio_pulldown_t::GPIO_PULLDOWN_DISABLE,
                              .intr_type    = gpio_int_type_t::GPIO_INTR_DISABLE};
   gpio_config(&config);
+}
+
+void InitializePins() {
+  gpio_pad_select_gpio(kPinButton);
+  gpio_set_direction(kPinButton, gpio_mode_t::GPIO_MODE_INPUT);
+  gpio_set_pull_mode(kPinButton, gpio_pull_mode_t::GPIO_PULLDOWN_ONLY);
+  gpio_pulldown_en(kPinButton);
+
+  gpio_pad_select_gpio(kPinLed);
+  gpio_set_direction(kPinLed, gpio_mode_t::GPIO_MODE_OUTPUT);
+  gpio_set_level(kPinLed, 0);
+
+  gpio_pad_select_gpio(kPinBuzzer);
+  gpio_set_direction(kPinBuzzer, gpio_mode_t::GPIO_MODE_OUTPUT);
+  gpio_set_level(kPinBuzzer, 0);
 }
 
 void InitializeSegments() {
@@ -165,6 +181,12 @@ bool QueryPassword() {
   xSemaphoreGive(mmrr::queue::semaphore_password);
   xQueueReceive(mmrr::queue::queue_password, &is_correct_password, pdMS_TO_TICKS(10000));
 
+  if (is_correct_password) {
+    ESP_LOGI(kTag, "Correct password.");
+  } else {
+    ESP_LOGW(kTag, "Password failed.");
+  }
+
   TurnOffDigits();
   vTaskDelete(task_countdown);
 
@@ -173,8 +195,9 @@ bool QueryPassword() {
 
 void Fsm() {
   static State actual_state = State::Initial;
-  PrintState(actual_state);
+  // PrintState(actual_state);
 
+  vTaskDelay(pdMS_TO_TICKS(500));
 
   switch (actual_state) {
     case State::Initial: {
@@ -201,18 +224,20 @@ void Fsm() {
     };
 
     case State::Detect: {
-      // bool is_movement_detected = digitalRead(pin_sensor_movement) == 1;
-      bool is_movement_detected   = false;
-      static bool is_light_detect = false;
-      // TODO analog_read
-      // if (analogRead(kPinLdr) < 100) {
-      //   is_light_detect = true;
-      // }
+      bool is_movement_detected = false;
+      bool is_light_detect      = false;
+      auto ldr_value = mmrr::adc::Read();
+      // ESP_LOGI(kTag, "ldr: %d", ldr_value);
+
+      if (ldr_value < 200) {
+        is_light_detect = true;
+      }
+
       bool buzzer_should_activate = is_movement_detected || is_light_detect;
       ESP_LOGI(kTag, "Movimento: %d, Luz: %d.", is_movement_detected, is_light_detect);
       if (buzzer_should_activate) {
         // Alguém entrou na casa, o buzzer vai explodir.
-        TwoBeeps(1000);
+        TwoBeeps(500);
         actual_state    = State::Password;
         is_light_detect = false;
       }
@@ -270,6 +295,7 @@ void Init() {
   mmrr::uart::Init();
 
   InitializeSegments();
+  InitializePins();
 
   xTaskCreatePinnedToCore(
       TaskFsm, "TaskFsm", configMINIMAL_STACK_SIZE * 5, nullptr, 5, nullptr, APP_CPU_NUM);
