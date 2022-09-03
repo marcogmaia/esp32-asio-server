@@ -70,6 +70,9 @@ void InitializeSegments() {
   };
   constexpr auto segs_bitmask = ComputeBitMask(segment_pins);
   ConfigGpio(segs_bitmask, gpio_mode_t::GPIO_MODE_OUTPUT);
+  for (auto& pin : segment_pins) {
+    gpio_set_level(pin, 0);
+  }
 }
 
 template <typename T>
@@ -155,12 +158,16 @@ void TwoBeeps(int delay_ms) {
 void CountdownTask(void* ignore) {
   ESP_LOGI(kTag, "Countdown started.");
   for (int i = 9; i >= 0; --i) {
+    auto last_wake_time = xTaskGetTickCount();
     ShowDigit(i);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1000));
   }
+  ESP_LOGI(kTag, "Countdown ended.\n");
   vTaskDelay(portMAX_DELAY);
 }
 
+/// @brief This task must be terminated by the caller.
+/// @return Task handler.
 TaskHandle_t CreateCountdownTask() {
   TaskHandle_t task_handler = nullptr;
   xTaskCreatePinnedToCore(CountdownTask,
@@ -197,14 +204,14 @@ void Fsm() {
   static State actual_state = State::Initial;
   // PrintState(actual_state);
 
-  vTaskDelay(pdMS_TO_TICKS(500));
+  // vTaskDelay(pdMS_TO_TICKS(500));
 
   switch (actual_state) {
     case State::Initial: {
       // Aqui a gente quer ler apenas se o botao foi pressionado.
       bool is_pin_pressed = gpio_get_level(kPinButton) == 1;
-      ESP_LOGI(kTag, "Pressed: %d", is_pin_pressed);
       if (is_pin_pressed) {
+        ESP_LOGI(kTag, "Button pressed.");
         actual_state = State::ActivateAlarm;
       }
       break;
@@ -226,7 +233,7 @@ void Fsm() {
     case State::Detect: {
       bool is_movement_detected = false;
       bool is_light_detect      = false;
-      auto ldr_value = mmrr::adc::Read();
+      auto ldr_value            = mmrr::adc::Read();
       // ESP_LOGI(kTag, "ldr: %d", ldr_value);
 
       if (ldr_value < 200) {
@@ -234,12 +241,12 @@ void Fsm() {
       }
 
       bool buzzer_should_activate = is_movement_detected || is_light_detect;
-      ESP_LOGI(kTag, "Movimento: %d, Luz: %d.", is_movement_detected, is_light_detect);
+      // ESP_LOGI(kTag, "Movimento: %d, Luz: %d.", is_movement_detected, is_light_detect);
       if (buzzer_should_activate) {
+        ESP_LOGI(kTag, "Movement detected.");
         // Alguém entrou na casa, o buzzer vai explodir.
-        TwoBeeps(500);
+        TwoBeeps(250);
         actual_state    = State::Password;
-        is_light_detect = false;
       }
       break;
     }
@@ -277,6 +284,7 @@ void TaskFsm(void* ignore) {
   ESP_LOGI(kTag, "FSM started.");
   while (true) {
     Fsm();
+    vTaskDelay(5);  // delay 1 tick (10ms if 100hz FreeRTOS frequency).
   }
 }
 
