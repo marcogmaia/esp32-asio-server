@@ -1,24 +1,6 @@
+#include <cstring>
 #include <string>
 #include <utility>
-
-#include <esp_wifi.h>
-
-namespace wifi {
-
-void Init() {}
-void Terminate() {}
-
-}  // namespace  wifi
-
-/* WiFi station Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-#include <cstring>
 
 #include <esp_event.h>
 #include <esp_log.h>
@@ -35,8 +17,6 @@ void Terminate() {}
 
 namespace {
 
-
-
 /* FreeRTOS event group to signal when we are connected*/
 EventGroupHandle_t s_wifi_event_group;
 
@@ -44,7 +24,7 @@ EventGroupHandle_t s_wifi_event_group;
  * - we are connected to the AP with an IP
  * - we failed to connect after the maximum amount of retries */
 constexpr auto WIFI_CONNECTED_BIT = BIT0;
-constexpr auto WIFI_FAIL_BIT = BIT1;
+constexpr auto WIFI_FAIL_BIT      = BIT1;
 
 constexpr auto TAG = "wifi station";
 
@@ -86,7 +66,9 @@ class WifiConfig {
 
 }  // namespace
 
-void WifiInitStation(void) {
+namespace mmrr::wifi {
+
+void Init(void) {
   s_wifi_event_group = xEventGroupCreate();
 
   ESP_ERROR_CHECK(esp_netif_init());
@@ -118,7 +100,7 @@ void WifiInitStation(void) {
   EventBits_t bits = xEventGroupWaitBits(
       s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
-  auto connected = bits & WIFI_CONNECTED_BIT;
+  auto connected         = bits & WIFI_CONNECTED_BIT;
   auto connection_failed = bits & WIFI_FAIL_BIT;
 
   /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event
@@ -131,3 +113,5 @@ void WifiInitStation(void) {
     ESP_LOGE(TAG, "UNEXPECTED EVENT");
   }
 }
+
+}  // namespace mmrr::wifi

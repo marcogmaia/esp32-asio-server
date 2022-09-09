@@ -4,9 +4,8 @@ idf_component_register(
   "./client.cpp"
   "./main.cpp"
   "./queue.cpp"
-  "./server.cpp"
   "./uart.cpp"
-  "./wifi_server.cpp"
+  "./wifi.cpp"
   "alarm/alarm.cpp"
 
   INCLUDE_DIRS "."

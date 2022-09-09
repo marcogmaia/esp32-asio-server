@@ -12,9 +12,8 @@
 #include "board_configs.h"
 #include "client.h"
 #include "queue.h"
-#include "server.h"
 #include "uart.h"
-#include "wifi_server.h"
+#include "wifi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +35,7 @@ void app_main(void) {
   InitNvs();
 
   ESP_LOGI(kTag, "ESP_WIFI_MODE_STA");
-  WifiInitStation();
+  mmrr::wifi::Init();
 
   mmrr::queue::Init();
   mmrr::uart::Init();

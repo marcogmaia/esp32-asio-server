@@ -25,8 +25,8 @@ constexpr gpio_num_t kPinLed            = GPIO_NUM_13;
 constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 
 // Wifi configs.
-constexpr auto kWifiSsid     = "CINGUESTS";
-constexpr auto kWifiPass     = "acessocin";
+constexpr auto kWifiSsid     = "maia";
+constexpr auto kWifiPass     = "marco3445";
 constexpr auto kMaximumRetry = 2;
 
 // Client configs.
