@@ -11,10 +11,10 @@ idf_component_register(
   INCLUDE_DIRS "."
 
   REQUIRES
-
   asio
   wifi_provisioning
   nvs_flash
   fmt
   esp_adc_cal
+  blynk
 )
