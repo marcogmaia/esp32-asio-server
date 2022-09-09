@@ -1,11 +1,13 @@
 idf_component_register(
-  SRCS
-  "./blynk/blynk.c"
+  SRC_DIRS
+  "./src"
+  "./src/utility"
 
-  INCLUDE_DIRS "."
+  INCLUDE_DIRS
+  "./src"
 
   REQUIRES
-  lwip
+  arduino
 )
 
-target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-format-truncation)
+target_compile_definitions(${COMPONENT_LIB} PUBLIC -DESP32)

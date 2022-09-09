@@ -18,15 +18,20 @@ constexpr gpio_num_t kPinSegE = GPIO_NUM_22;
 constexpr gpio_num_t kPinSegF = GPIO_NUM_14;
 constexpr gpio_num_t kPinSegG = GPIO_NUM_12;
 
-constexpr gpio_num_t kPinButton         = GPIO_NUM_27;
-constexpr gpio_num_t kPinBuzzer         = GPIO_NUM_23;
+constexpr gpio_num_t kPinButton = GPIO_NUM_27;
+constexpr gpio_num_t kPinBuzzer = GPIO_NUM_23;
 // constexpr gpio_num_t kPinLdr            = GPIO_NUM_NC; // GPIO_34 - ADC
 constexpr gpio_num_t kPinLed            = GPIO_NUM_13;
 constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 
+// Semaphores led pins.
+constexpr gpio_num_t kPinLedGreen       = GPIO_NUM_13;
+constexpr gpio_num_t kPinLedYellow      = GPIO_NUM_32;
+constexpr gpio_num_t kPinLedRed         = GPIO_NUM_33;
+
 // Wifi configs.
-constexpr auto kWifiSsid     = "maia";
-constexpr auto kWifiPass     = "marco3445";
+constexpr auto kWifiSsid     = "CINGUESTS";
+constexpr auto kWifiPass     = "acessocin";
 constexpr auto kMaximumRetry = 2;
 
 // Client configs.
