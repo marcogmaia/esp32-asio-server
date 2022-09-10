@@ -31,17 +31,17 @@ extern "C" void app_main(void) {
   mmrr::queue::Init();
   mmrr::adc::Init();
 
-  using mmrr::semaphore::Notes;
-  mmrr::semaphore::BuzzerSetFrequency(4000);
-  mmrr::semaphore::BuzzerTurnOn();
-  vTaskDelay(pdMS_TO_TICKS(1000));
-  mmrr::semaphore::BuzzerTurnOff();
+  using namespace mmrr::semaphore;
+
   while (true) {
-    vTaskDelay(pdMS_TO_TICKS(100));
-    if (mmrr::semaphore::IsBuzzerOn()) {
-      mmrr::semaphore::BuzzerTurnOn();
-    } else {
-      mmrr::semaphore::BuzzerTurnOff();
+    if (IsBuzzerStateChanged()) {
+      if (IsBuzzerOn()) {
+        BuzzerTurnOn();
+        BuzzerSetFrequency(GetBuzzerFrequency());
+      } else {
+        BuzzerTurnOff();
+      }
     }
+    vTaskDelay(pdMS_TO_TICKS(20));
   }
 }

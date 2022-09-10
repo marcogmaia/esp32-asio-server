@@ -1,5 +1,7 @@
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 
 #include <driver/gpio.h>
 #include <driver/ledc.h>
@@ -18,13 +20,18 @@ void InitGpio() {
   ConfigGpio(bitmask, gpio_mode_t::GPIO_MODE_OUTPUT);
 }
 
+void SetDuty(uint8_t duty) {
+  ledc_set_duty(kPwmSpeedMode, kPwmChannel, duty);
+  ledc_update_duty(kPwmSpeedMode, kPwmChannel);
+}
+
 void InitPwm() {
   // Prepare and then apply the LEDC PWM timer configuration
   ledc_timer_config_t ledc_timer = {.speed_mode      = kPwmSpeedMode,
                                     .duty_resolution = kPwmDutyResolution,
                                     .timer_num       = kPwmTimer,
-                                    .freq_hz = kPwmFrequency,  // Set output frequency at 5 kHz
-                                    .clk_cfg = LEDC_AUTO_CLK};
+                                    .freq_hz         = kPwmFrequency,
+                                    .clk_cfg         = LEDC_USE_APB_CLK};
   ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
   // Prepare and then apply the LEDC PWM channel configuration
@@ -39,11 +46,29 @@ void InitPwm() {
   ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 }
 
+void InitializeSegments() {
+  constexpr std::array<gpio_num_t, 7> segment_pins{
+      kPinSegA,
+      kPinSegB,
+      kPinSegC,
+      kPinSegD,
+      kPinSegE,
+      kPinSegF,
+      kPinSegG,
+  };
+  constexpr auto segs_bitmask = ComputeBitMask(segment_pins);
+  ConfigGpio(segs_bitmask, gpio_mode_t::GPIO_MODE_OUTPUT);
+  for (auto& pin : segment_pins) {
+    gpio_set_level(pin, 0);
+  }
+}
+
 }  // namespace detail
 
 void Init() {
   detail::InitGpio();
   detail::InitPwm();
+  detail::InitializeSegments();
   detail::InitBlynk();
 }
 

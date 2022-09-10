@@ -23,6 +23,8 @@ void BuzzerSetFrequency(int frequency);
 void BuzzerTurnOff();
 void BuzzerTurnOn();
 bool IsBuzzerOn();
+bool IsBuzzerStateChanged();
+int GetBuzzerFrequency();
 
 void Init();
 

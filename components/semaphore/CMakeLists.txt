@@ -3,6 +3,7 @@ idf_component_register(
   "impl/blynk.cpp"
   "impl/init.cpp"
   "impl/pwm.cpp"
+  "impl/semaphore.cpp"
 
   INCLUDE_DIRS
   "."

@@ -25,18 +25,27 @@ constexpr const char *kPass      = "marco3445";
 
 mmrr::semaphore::SemaphoreTiming semaphore_timing{};
 
-bool is_buzzer_on = false;
+bool buzzer_state    = false;
+int buzzer_frequency = 128;
+int car_counter      = 0;
+
+BlynkTimer timer;
+
+void UpdateCounter() {
+  Blynk.virtualWrite(V5, car_counter);
+}
 
 void TaskBlynk(void *ignore) {
   // Debug console
   Serial.begin(115200);
-
   Blynk.begin(kAuthToken, kSsid, kPass);
-
   ESP_LOGI(kTag, "Blynk started.");
+
+  timer.setInterval(1000, UpdateCounter);
 
   while (true) {
     Blynk.run();
+    timer.run();
     // timer.run();
     vTaskDelay(pdMS_TO_TICKS(20));
   }
@@ -59,9 +68,20 @@ BLYNK_WRITE(V2) {
 // buzzer
 BLYNK_WRITE(V3) {
   int value    = param.asInt();
-  is_buzzer_on = static_cast<bool>(value);
+  buzzer_state = static_cast<bool>(value);
   ESP_LOGI(kTag, "Buzzer state: %d", value);
 }
+// buzzer frequency
+BLYNK_WRITE(V4) {
+  buzzer_frequency = param.asInt();
+  ESP_LOGI(kTag, "Buzzer frequency: %d", buzzer_frequency);
+}
+// buzzer frequency
+// BLYNK_WRITE(V5) {
+//   Blynk.virtualWrite(V5, )
+//   // buzzer_frequency = param.asInt();
+//   // ESP_LOGI(kTag, "Buzzer frequency: %d", buzzer_frequency);
+// }
 
 namespace mmrr::semaphore {
 
@@ -79,7 +99,28 @@ SemaphoreTiming GetSemaphoreTiming() {
 }
 
 bool IsBuzzerOn() {
-  return is_buzzer_on;
+  return buzzer_state;
+}
+
+int GetBuzzerFrequency() {
+  return buzzer_frequency;
+}
+
+bool IsBuzzerStateChanged() {
+  static bool last_state    = buzzer_state;
+  static int last_frequency = buzzer_frequency;
+  // Changed.
+  if (last_state != buzzer_state) {
+    last_state = buzzer_state;
+    return true;
+  }
+
+  if (last_frequency != buzzer_frequency) {
+    last_frequency = buzzer_frequency;
+    return true;
+  }
+
+  return false;
 }
 
 }  // namespace mmrr::semaphore
