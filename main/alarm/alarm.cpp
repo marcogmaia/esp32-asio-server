@@ -12,7 +12,7 @@
 #include "freertos/task.h"
 
 #include "adc.h"
-#include "board_configs.h"
+#include "mmrr/configs.h"
 #include "password/password.h"
 #include "queue.h"
 #include "uart.h"
@@ -22,26 +22,6 @@ namespace mmrr::alarm {
 namespace {
 
 constexpr auto* kTag = "Alarm";
-
-template <typename GpioArray>
-constexpr uint64_t ComputeBitMask(GpioArray gpio_array) {
-  uint64_t bitmask = 0;
-  for (auto& gpio : gpio_array) {
-    if (gpio >= 0) {
-      bitmask |= BIT(gpio);
-    }
-  }
-  return bitmask;
-}
-
-void ConfigGpio(uint64_t gpio_bitmask, gpio_mode_t mode) {
-  const gpio_config_t config{.pin_bit_mask = gpio_bitmask,
-                             .mode         = mode,
-                             .pull_up_en   = gpio_pullup_t::GPIO_PULLUP_DISABLE,
-                             .pull_down_en = gpio_pulldown_t::GPIO_PULLDOWN_DISABLE,
-                             .intr_type    = gpio_int_type_t::GPIO_INTR_DISABLE};
-  gpio_config(&config);
-}
 
 void InitializePins() {
   gpio_pad_select_gpio(kPinButton);

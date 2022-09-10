@@ -9,7 +9,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
-#include "board_configs.h"
+#include "mmrr/configs.h"
 #include "queue.h"
 
 namespace mmrr::adc {

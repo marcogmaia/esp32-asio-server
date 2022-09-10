@@ -7,15 +7,16 @@ idf_component_register(
   # "./client.cpp"
   # "./wifi.cpp"
   # "./alarm/alarm.cpp"
-  "./semaforo/semaforo.cpp"
 
   INCLUDE_DIRS "."
 
   REQUIRES
   # asio
   # wifi_provisioning
-  # nvs_flash
+  nvs_flash
   fmt
   esp_adc_cal
   blynk
+  semaphore
+  board
 )

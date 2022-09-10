@@ -1,9 +1,10 @@
 #pragma once
 
-#include "driver/adc.h"
-#include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include <driver/adc.h>
+#include <driver/gpio.h>
+#include <driver/ledc.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 constexpr gpio_num_t kGpioLed = GPIO_NUM_2;
 
@@ -25,9 +26,9 @@ constexpr gpio_num_t kPinLed            = GPIO_NUM_13;
 constexpr gpio_num_t kPinSensorMovement = GPIO_NUM_NC;
 
 // Semaphores led pins.
-constexpr gpio_num_t kPinLedGreen       = GPIO_NUM_13;
-constexpr gpio_num_t kPinLedYellow      = GPIO_NUM_32;
-constexpr gpio_num_t kPinLedRed         = GPIO_NUM_33;
+constexpr gpio_num_t kPinLedGreen  = GPIO_NUM_13;
+constexpr gpio_num_t kPinLedYellow = GPIO_NUM_32;
+constexpr gpio_num_t kPinLedRed    = GPIO_NUM_33;
 
 // Wifi configs.
 constexpr auto kWifiSsid     = "CINGUESTS";
@@ -51,6 +52,35 @@ constexpr adc_channel_t kAdcChannel   = ADC_CHANNEL_6;  // GPIO34 if ADC1, GPIO1
 constexpr adc_bits_width_t kAdcWidth  = ADC_WIDTH_BIT_10;
 constexpr adc_atten_t kAdcAttenuation = ADC_ATTEN_DB_0;
 
+// PWM configs.
+constexpr gpio_num_t kPinPwm      = kPinBuzzer;
+constexpr auto kPwmChannel        = ledc_channel_t::LEDC_CHANNEL_0;
+constexpr auto kPwmSpeedMode      = ledc_mode_t::LEDC_HIGH_SPEED_MODE;
+constexpr auto kPwmDutyResolution = ledc_timer_bit_t::LEDC_TIMER_6_BIT;
+constexpr auto kPwmTimer          = ledc_timer_t::LEDC_TIMER_0;
+constexpr int kPwmFrequency       = 20'000;
+constexpr int kPwmInitialDuty     = 0;  // 0% of 6 bit.
+
+template <typename GpioArray>
+constexpr uint64_t ComputeBitMask(GpioArray gpio_array) {
+  uint64_t bitmask = 0;
+  for (auto& gpio : gpio_array) {
+    if (gpio >= 0) {
+      bitmask |= BIT64(gpio);
+    }
+  }
+  return bitmask;
+}
+
+inline void ConfigGpio(uint64_t gpio_bitmask, gpio_mode_t mode) {
+  const gpio_config_t config{.pin_bit_mask = gpio_bitmask,
+                             .mode         = mode,
+                             .pull_up_en   = gpio_pullup_t::GPIO_PULLUP_DISABLE,
+                             .pull_down_en = gpio_pulldown_t::GPIO_PULLDOWN_DISABLE,
+                             .intr_type    = gpio_int_type_t::GPIO_INTR_DISABLE};
+  gpio_config(&config);
+}
+
 inline void BlinkFunctionTask(void* ignore) {
   static bool initialized = false;
   if (!initialized) {
@@ -73,5 +103,6 @@ inline void Blink() {
 namespace mmrr {
 
 void Init();
+void InitSemaphore();
 
-}
+}  // namespace mmrr

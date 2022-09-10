@@ -12,7 +12,7 @@
 #include "gsl/span"
 #include "sdkconfig.h"
 
-#include "board_configs.h"
+#include "mmrr/configs.h"
 #include "password/password.h"
 #include "queue.h"
 #include "uart.h"
