@@ -9,7 +9,6 @@
 #include "fmt/format.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "gsl/span"
 #include "sdkconfig.h"
 
 #include "mmrr/configs.h"
