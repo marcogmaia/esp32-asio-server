@@ -1,3 +1,5 @@
+#include "semaphore.h"
+
 #include <algorithm>
 #include <string>
 

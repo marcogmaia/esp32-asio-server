@@ -8,15 +8,6 @@ struct SemaphoreTiming {
   int green  = 0;
 };
 
-enum class Notes {
-kC3 = 128,
-kE3 = 160,
-kG3 = 200,
-kC5 = 512,
-kE5 = 640,
-kA5 = 800,
-};
-
 SemaphoreTiming GetSemaphoreTiming();
 
 void BuzzerSetFrequency(int frequency);
@@ -25,6 +16,10 @@ void BuzzerTurnOn();
 bool IsBuzzerOn();
 bool IsBuzzerStateChanged();
 int GetBuzzerFrequency();
+
+/// @brief Count a car.
+/// @return The actual number of counted cars.
+int AddCarCounter();
 
 void Init();
 

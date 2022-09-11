@@ -7,6 +7,7 @@
 #include <driver/ledc.h>
 
 #include "impl/init.h"
+#include "impl/ldr.h"
 #include "mmrr/configs.h"
 
 namespace mmrr::semaphore {
@@ -14,8 +15,7 @@ namespace mmrr::semaphore {
 namespace detail {
 
 void InitGpio() {
-  constexpr std::array<gpio_num_t, 4> semaphore_pins{
-      kPinLedRed, kPinLedYellow, kPinLedGreen, kPinBuzzer};
+  constexpr std::array<gpio_num_t, 4> semaphore_pins{kPinLedRed, kPinLedYellow, kPinLedGreen};
   constexpr auto bitmask = ComputeBitMask(semaphore_pins);
   ConfigGpio(bitmask, gpio_mode_t::GPIO_MODE_OUTPUT);
 }
@@ -68,6 +68,7 @@ void InitializeSegments() {
 void Init() {
   detail::InitGpio();
   detail::InitPwm();
+  InitLdr();
   detail::InitializeSegments();
   detail::InitBlynk();
 }

@@ -31,7 +31,7 @@ int car_counter      = 0;
 
 BlynkTimer timer;
 
-void UpdateCounter() {
+void UpdateCarCounter() {
   Blynk.virtualWrite(V5, car_counter);
 }
 
@@ -41,7 +41,7 @@ void TaskBlynk(void *ignore) {
   Blynk.begin(kAuthToken, kSsid, kPass);
   ESP_LOGI(kTag, "Blynk started.");
 
-  timer.setInterval(1000, UpdateCounter);
+  timer.setInterval(1000, UpdateCarCounter);
 
   while (true) {
     Blynk.run();
@@ -121,6 +121,10 @@ bool IsBuzzerStateChanged() {
   }
 
   return false;
+}
+
+int AddCarCounter() {
+  return ++car_counter;
 }
 
 }  // namespace mmrr::semaphore

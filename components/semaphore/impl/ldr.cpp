@@ -1,18 +1,17 @@
+#include "ldr.h"
 
 #include <cstring>
 
-#include "driver/adc.h"
-#include "driver/gpio.h"
-#include "esp_adc_cal.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-#include "freertos/task.h"
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 
 #include "mmrr/configs.h"
-#include "queue.h"
 
-namespace mmrr::adc {
+namespace mmrr::semaphore {
 
 namespace {
 
@@ -20,6 +19,8 @@ constexpr int kDefaultVref = 1100;  // Use adc2_vref_to_gpio() to obtain a bette
 constexpr int kNoOfSamples = 32;    // Multisampling
 
 esp_adc_cal_characteristics_t adc_chars;
+
+int ldr_value = 0;
 
 }  // namespace
 
@@ -57,7 +58,8 @@ void TaskAdc(void* ignore) {
     // printf("Raw: %d\tVoltage: %dmV\n", adc_reading, voltage);
 
     // Send the value read to the queue.
-    xQueueOverwrite(queue::queue_adc, &adc_reading);
+    // xQueueOverwrite(queue::queue_adc, &adc_reading);
+    ldr_value = adc_reading;
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
@@ -94,10 +96,10 @@ void Init() {
     return;
   }
   initialized = true;
-  queue::Init();
+  // queue::Init();
   // xQueuePeek(mmrr::queue::queue_adc, &value_read, portMAX_DELAY);
-  constexpr uint32_t kAdcInitialValue = 0;
-  xQueueOverwrite(queue::queue_adc, &kAdcInitialValue);
+  // constexpr uint32_t kAdcInitialValue = 0;
+  // xQueueOverwrite(queue::queue_adc, &kAdcInitialValue);
 
   check_efuse();
 
@@ -119,10 +121,15 @@ void Init() {
       TaskAdc, "TaskAdc", configMINIMAL_STACK_SIZE * 2, nullptr, 5, nullptr, PRO_CPU_NUM);
 }
 
-uint32_t Read() {
-  uint32_t value_read = 0;
-  xQueuePeek(mmrr::queue::queue_adc, &value_read, portMAX_DELAY);
-  return value_read;
+// xxxxxxxxxxxxxx ============
+
+namespace {}  // namespace
+
+void InitLdr() {}
+
+// TODO
+int LdrRead() {
+  return ldr_value;
 }
 
-}  // namespace mmrr::adc
+}  // namespace mmrr::semaphore

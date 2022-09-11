@@ -12,7 +12,7 @@
 #include <freertos/queue.h>
 #include <asio.hpp>
 
-#include "board_configs.h"
+#include "mmrr/configs.h"
 #include "queue.h"
 #include "uart.h"
 
@@ -161,7 +161,7 @@ void TaskClient(void* ignore) {
 
     // auto ip_read   = mmrr::uart::Read();
     std::string ip_read = "192.168.1.7";
-    auto endpoints = resolver.resolve(ip_read.c_str(), kPort);
+    auto endpoints      = resolver.resolve(ip_read.c_str(), kPort);
     Client client(&io_context, endpoints);
 
     xTaskCreate(TaskIoContextClient,
