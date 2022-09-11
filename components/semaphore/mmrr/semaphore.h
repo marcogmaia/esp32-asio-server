@@ -10,7 +10,7 @@ struct SemaphoreTiming {
 
 SemaphoreTiming GetSemaphoreTiming();
 
-void BuzzerSetFrequency(int frequency);
+// void BuzzerSetFrequency(int frequency);
 void BuzzerTurnOff();
 void BuzzerTurnOn();
 bool IsBuzzerOn();

@@ -24,14 +24,11 @@ void SetDutyPercentual(int percentual) {
   SetDuty(duty);
 }
 
-}  // namespace
-
 void BuzzerSetFrequency(int frequency) {
-  // const int frequency = static_cast<int>(note);
-  // ledctimer
   ledc_set_freq(kPwmSpeedMode, kPwmTimer, frequency);
-  SetDutyPercentual(20);
 }
+
+}  // namespace
 
 void BuzzerTurnOff() {
   SetDutyPercentual(0);
@@ -39,8 +36,7 @@ void BuzzerTurnOff() {
 
 // Set duty to ~1.56%
 void BuzzerTurnOn() {
-  // ESP_ERROR_CHECK(ledc_set_duty(kPwmSpeedMode, kPwmChannel, 1));
-  // ESP_ERROR_CHECK(ledc_update_duty(kPwmSpeedMode, kPwmChannel));
+  BuzzerSetFrequency(GetBuzzerFrequency());
   SetDutyPercentual(20);
 }
 

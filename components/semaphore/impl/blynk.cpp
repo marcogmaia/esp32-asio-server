@@ -20,8 +20,8 @@ namespace {
 
 constexpr const char *kAuthToken = BLYNK_AUTH_TOKEN;
 constexpr const char *kTag       = "Semaforo";
-constexpr const char *kSsid      = "maia";
-constexpr const char *kPass      = "marco3445";
+constexpr const char *kSsid      = "CINGUESTS";
+constexpr const char *kPass      = "acessocin";
 
 mmrr::semaphore::SemaphoreTiming semaphore_timing{};
 
@@ -46,7 +46,6 @@ void TaskBlynk(void *ignore) {
   while (true) {
     Blynk.run();
     timer.run();
-    // timer.run();
     vTaskDelay(pdMS_TO_TICKS(20));
   }
 }
@@ -79,12 +78,6 @@ BLYNK_WRITE(V4) {
 BLYNK_CONNECTED() {
   Blynk.syncAll();
 }
-// buzzer frequency
-// BLYNK_WRITE(V5) {
-//   Blynk.virtualWrite(V5, )
-//   // buzzer_frequency = param.asInt();
-//   // ESP_LOGI(kTag, "Buzzer frequency: %d", buzzer_frequency);
-// }
 
 namespace mmrr::semaphore {
 

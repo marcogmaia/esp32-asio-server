@@ -64,7 +64,7 @@ void TurnOffDigits() {
 }
 
 void Countdown(int time_ms) {
-  ESP_LOGI(kTag, "Countdown started.");
+  ESP_LOGD(kTag, "Countdown started.");
 
   auto init_time = xTaskGetTickCount();
   int wait_ms    = 20;
@@ -75,7 +75,7 @@ void Countdown(int time_ms) {
     vTaskDelayUntil(&init_time, pdMS_TO_TICKS(20));
   }
 
-  ESP_LOGI(kTag, "Countdown ended.\n");
+  ESP_LOGD(kTag, "Countdown ended.");
 }
 
 void TaskBuzzer(void* ignore) {
@@ -84,19 +84,17 @@ void TaskBuzzer(void* ignore) {
   } else {
     BuzzerTurnOff();
   }
-  BuzzerSetFrequency(GetBuzzerFrequency());
 
   while (true) {
-    if (IsBuzzerOn()) {
-      if (IsBuzzerStateChanged()) {
+    if (IsBuzzerStateChanged()) {
+      if (IsBuzzerOn()) {
         BuzzerTurnOn();
-        BuzzerSetFrequency(GetBuzzerFrequency());
       } else {
         BuzzerTurnOff();
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(100));
   }
+  vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 TaskHandle_t CreateBuzzerTask() {
@@ -110,8 +108,10 @@ void TaskCarCounter(void* ignore) {
   while (true) {
     if (mmrr::semaphore::LdrRead() < 200) {
       AddCarCounter();
+      vTaskDelay(pdMS_TO_TICKS(500));
+    } else {
+      vTaskDelay(pdMS_TO_TICKS(50));
     }
-    vTaskDelay(pdMS_TO_TICKS(50));
   }
 }
 
@@ -126,22 +126,6 @@ TaskHandle_t CreateCarCounterTask() {
                           APP_CPU_NUM);
   return handle;
 }
-
-template <typename TaskFunction, typename Param = std::nullptr_t>
-class Task {
-  Task(TaskFunction&& task,
-       std::string_view name,
-       Param param         = nullptr,
-       uint32_t stack_size = 3 * configMINIMAL_STACK_SIZE)
-      : task_(task) {
-    xTaskCreatePinnedToCore(
-        std::forward<Task>(task), name.data(), stack_size, param, 5, handle_, APP_CPU_NUM);
-  }
-
- private:
-  TaskFunction task_;
-  TaskHandle_t handle_ = nullptr;
-};
 
 void Fsm() {
   static State state = State::Green;
