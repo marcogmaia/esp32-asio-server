@@ -22,8 +22,6 @@ esp_adc_cal_characteristics_t adc_chars;
 
 int ldr_value = 0;
 
-}  // namespace
-
 constexpr const char* kTag = "Adc";
 
 static void check_efuse(void) {
@@ -42,6 +40,8 @@ static void check_efuse(void) {
 }
 
 void TaskAdc(void* ignore) {
+  auto init_tick = xTaskGetTickCount();
+
   while (true) {
     uint32_t adc_reading = 0;
     // Multisampling
@@ -61,7 +61,7 @@ void TaskAdc(void* ignore) {
     // xQueueOverwrite(queue::queue_adc, &adc_reading);
     ldr_value = adc_reading;
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    xTaskDelayUntil(&init_tick, pdMS_TO_TICKS(100));
   }
 }
 
@@ -90,16 +90,14 @@ void PrintCharsValType(esp_adc_cal_value_t val_type) {
   }
 }
 
-void Init() {
+}  // namespace
+
+void InitLdr() {
   static bool initialized = false;
   if (initialized) {
     return;
   }
   initialized = true;
-  // queue::Init();
-  // xQueuePeek(mmrr::queue::queue_adc, &value_read, portMAX_DELAY);
-  // constexpr uint32_t kAdcInitialValue = 0;
-  // xQueueOverwrite(queue::queue_adc, &kAdcInitialValue);
 
   check_efuse();
 
@@ -121,13 +119,6 @@ void Init() {
       TaskAdc, "TaskAdc", configMINIMAL_STACK_SIZE * 2, nullptr, 5, nullptr, PRO_CPU_NUM);
 }
 
-// xxxxxxxxxxxxxx ============
-
-namespace {}  // namespace
-
-void InitLdr() {}
-
-// TODO
 int LdrRead() {
   return ldr_value;
 }

@@ -3,9 +3,9 @@
 namespace mmrr::semaphore {
 
 struct SemaphoreTiming {
-  int red    = 0;
-  int yellow = 0;
-  int green  = 0;
+  int red    = 5000;
+  int yellow = 5000;
+  int green  = 5000;
 };
 
 SemaphoreTiming GetSemaphoreTiming();
@@ -22,5 +22,6 @@ int GetBuzzerFrequency();
 int AddCarCounter();
 
 void Init();
+void Fsm();
 
 }  // namespace mmrr::semaphore

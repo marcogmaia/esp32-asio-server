@@ -6,6 +6,7 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
+#include "impl/ldr.h"
 #include "mmrr/configs.h"
 #include "mmrr/semaphore.h"
 
@@ -77,7 +78,54 @@ void Countdown(int time_ms) {
   ESP_LOGI(kTag, "Countdown ended.\n");
 }
 
-void TaskBuzzer(void* ignore) {}
+void TaskBuzzer(void* ignore) {
+  if (IsBuzzerOn()) {
+    BuzzerTurnOn();
+  } else {
+    BuzzerTurnOff();
+  }
+  BuzzerSetFrequency(GetBuzzerFrequency());
+
+  while (true) {
+    if (IsBuzzerOn()) {
+      if (IsBuzzerStateChanged()) {
+        BuzzerTurnOn();
+        BuzzerSetFrequency(GetBuzzerFrequency());
+      } else {
+        BuzzerTurnOff();
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
+
+TaskHandle_t CreateBuzzerTask() {
+  TaskHandle_t handle = nullptr;
+  xTaskCreatePinnedToCore(
+      TaskBuzzer, "TaskBuzzer", configMINIMAL_STACK_SIZE * 2, nullptr, 4, &handle, APP_CPU_NUM);
+  return handle;
+}
+
+void TaskCarCounter(void* ignore) {
+  while (true) {
+    if (mmrr::semaphore::LdrRead() < 200) {
+      AddCarCounter();
+    }
+    vTaskDelay(pdMS_TO_TICKS(50));
+  }
+}
+
+TaskHandle_t CreateCarCounterTask() {
+  TaskHandle_t handle = nullptr;
+  xTaskCreatePinnedToCore(TaskCarCounter,
+                          "TaskCarCounter",
+                          configMINIMAL_STACK_SIZE * 2,
+                          nullptr,
+                          4,
+                          &handle,
+                          APP_CPU_NUM);
+  return handle;
+}
 
 template <typename TaskFunction, typename Param = std::nullptr_t>
 class Task {
@@ -85,7 +133,7 @@ class Task {
        std::string_view name,
        Param param         = nullptr,
        uint32_t stack_size = 3 * configMINIMAL_STACK_SIZE)
-      : task_(task), param_(param) {
+      : task_(task) {
     xTaskCreatePinnedToCore(
         std::forward<Task>(task), name.data(), stack_size, param, 5, handle_, APP_CPU_NUM);
   }
@@ -97,19 +145,35 @@ class Task {
 
 void Fsm() {
   static State state = State::Green;
+
   switch (state) {
     case State::Green: {
+      gpio_set_level(kPinLedGreen, 1);
       Countdown(GetSemaphoreTiming().green);
+      gpio_set_level(kPinLedGreen, 0);
+      state = State::Yellow;
       break;
     }
     case State::Yellow: {
+      gpio_set_level(kPinLedYellow, 1);
       Countdown(GetSemaphoreTiming().yellow);
+      gpio_set_level(kPinLedYellow, 0);
+      state = State::Red;
       break;
     }
     case State::Red: {
-      // - Create a task to count the cars and update the blynk.
-      // - Activate buzzer task
+      auto buzzer_handle    = CreateBuzzerTask();
+      auto car_task_handler = CreateCarCounterTask();
+
+      gpio_set_level(kPinLedRed, 1);
       Countdown(GetSemaphoreTiming().red);
+      gpio_set_level(kPinLedRed, 0);
+
+      vTaskDelete(buzzer_handle);
+      vTaskDelete(car_task_handler);
+      BuzzerTurnOff();
+
+      state = State::Green;
       break;
     }
   }

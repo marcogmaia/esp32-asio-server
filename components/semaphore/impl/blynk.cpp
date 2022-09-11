@@ -76,6 +76,9 @@ BLYNK_WRITE(V4) {
   buzzer_frequency = param.asInt();
   ESP_LOGI(kTag, "Buzzer frequency: %d", buzzer_frequency);
 }
+BLYNK_CONNECTED() {
+  Blynk.syncAll();
+}
 // buzzer frequency
 // BLYNK_WRITE(V5) {
 //   Blynk.virtualWrite(V5, )

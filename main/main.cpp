@@ -28,20 +28,9 @@ extern "C" void app_main(void) {
   InitNvs();
   ESP_LOGI(kTag, "ESP_WIFI_MODE_STA");
   mmrr::semaphore::Init();
-  mmrr::queue::Init();
-  mmrr::adc::Init();
-
-  using namespace mmrr::semaphore;
 
   while (true) {
-    if (IsBuzzerStateChanged()) {
-      if (IsBuzzerOn()) {
-        BuzzerTurnOn();
-        BuzzerSetFrequency(GetBuzzerFrequency());
-      } else {
-        BuzzerTurnOff();
-      }
-    }
+    mmrr::semaphore::Fsm();
     vTaskDelay(pdMS_TO_TICKS(20));
   }
 }
